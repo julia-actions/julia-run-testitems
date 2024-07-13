@@ -19,7 +19,7 @@ println(envs)
 
 results = run_tests(
     pwd(),
-    environments=[TestEnvironment(i["Name"], true, Dict(j in i["Env"])) for i in envs],
+    environments=[TestEnvironment(i["Name"], true, i["Env"]) for i in envs],
     fail_on_detection_error=false,
     return_results=true,
     print_failed_results=false,
