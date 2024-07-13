@@ -1,0 +1,41 @@
+name: 'Run Julia test items'
+description: 'Run tests that are based on the test item framework'
+inputs:
+  profiles:
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Compute Manifest hash
+      id: project-hash
+      shell: pwsh
+      run: |
+        $ourHash = Get-FileHash -LiteralPath "$env:GITHUB_ACTION_PATH\Manifest.toml"
+        "MANIFEST_HASH=$($ourHash.Hash)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+    - name: Check Julia version
+      shell: bash
+      id: julia-version
+      run: |
+        echo "JULIA_VERSION=$(julia -v)" >> $GITHUB_OUTPUT
+    - uses: actions/cache@v4
+      id: cache-project
+      with:
+        path: ${{ github.action_path }}/.julia
+        key: julia-run-testitems-cache-${{ runner.os }}-${{ steps.julia-version.outputs.JULIA_VERSION }}-${{ steps.project-hash.outputs.MANIFEST_HASH }}
+    - name: Install and precompile
+      if: steps.cache-project.outputs.cache-hit != 'true'
+      run: julia --project=${{ github.action_path }} -e 'import Pkg; Pkg.instantiate()'
+      shell: bash
+      env:
+        JULIA_DEPOT_PATH: ${{ github.action_path }}/.julia
+    - uses: actions/cache/save@v3
+      if: steps.cache-project.outputs.cache-hit != 'true'
+      with:
+        path: ${{ github.action_path }}/.julia
+        key: julia-run-testitems-cache-${{ runner.os }}-${{ steps.julia-version.outputs.JULIA_VERSION }}-${{ steps.project-hash.outputs.MANIFEST_HASH }}
+    - name: Run test items
+      run: julia --project=${{ github.action_path }} ${{ github.action_path }}/main.jl
+      shell: bash
+      env:
+        JULIA_DEPOT_PATH: ${{ github.action_path }}/.julia
+        OUR_FOO: ${{ inputs.profiles }}
