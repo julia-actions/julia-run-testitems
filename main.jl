@@ -7,15 +7,7 @@ function esc_data(s)
     return s
 end
 
-println("NOW LOOK AT ENV")
-
-println(ENV["OUR_FOO"])
-
-envs = JSON.parse(ENV["OUR_FOO"])
-
-println("DONE WITH FOO")
-
-println(envs)
+envs = JSON.parse(ENV["TEST_ENVIRONMENTS"])
 
 results = run_tests(
     pwd(),
