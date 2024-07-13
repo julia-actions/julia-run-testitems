@@ -34,8 +34,9 @@ runs:
         path: ${{ github.action_path }}/.julia
         key: julia-run-testitems-cache-${{ runner.os }}-${{ steps.julia-version.outputs.JULIA_VERSION }}-${{ steps.project-hash.outputs.MANIFEST_HASH }}
     - name: Run test items
-      run: julia --project=${{ github.action_path }} ${{ github.action_path }}/main.jl
+      run: julia ${{ github.action_path }}/main.jl
       shell: pwsh
       env:
+        JULIA_PROJECT: ${{ github.action_path }}
         JULIA_DEPOT_PATH: ${{ github.action_path }}/.julia
         TEST_ENVIRONMENTS: ${{ inputs.profiles }}
