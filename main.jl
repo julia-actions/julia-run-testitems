@@ -9,9 +9,6 @@ end
 
 envs = JSON.parse(ENV["TEST_ENVIRONMENTS"])
 
-println("WE HAVE")
-println(envs)
-
 results = run_tests(
     pwd(),
     environments=[TestEnvironment(i["Name"], true, i["Env"]) for i in envs],
