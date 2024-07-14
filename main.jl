@@ -14,7 +14,7 @@ results = run_tests(
     environments=[TestEnvironment("Julia $juliaup_channel", true, Dict("JULIAUP_CHANNEL" => juliaup_channel))],
     fail_on_detection_error=false,
     return_results=true,
-    print_failed_results=false,
+    print_failed_results=true,
     progress_ui=:log    
 )
 
