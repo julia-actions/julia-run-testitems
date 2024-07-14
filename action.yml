@@ -29,7 +29,7 @@ runs:
       env:
         JULIA_PROJECT: ${{ github.action_path }}
         JULIA_DEPOT_PATH: ${{ runner.tool_cache }}/julia-run-testitems-depot
-    - uses: actions/cache/save@v3
+    - uses: actions/cache/save@v4
       if: steps.cache-project.outputs.cache-hit != 'true'
       with:
         path: ${{ runner.tool_cache }}/julia-run-testitems-depot
