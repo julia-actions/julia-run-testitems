@@ -11,7 +11,7 @@ juliaup_channel = ENV["TEST_JULIAUP_CHANNEL"]
 
 results = run_tests(
     pwd(),
-    environments=[TestEnvironment("Julia $juliaup_channel", true, Dict("JULIAUP_CHANNEL" => juliaup_channel,"JULIA_DEPOT_PATH" => ""))],
+    environments=[TestEnvironment("Julia $juliaup_channel", true, Dict("JULIAUP_CHANNEL" => juliaup_channel,"JULIA_DEPOT_PATH" => Sys.iswindows() ? ";" : ":"))],
     fail_on_detection_error=false,
     return_results=true,
     print_failed_results=true,
