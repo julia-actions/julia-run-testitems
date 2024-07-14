@@ -24,9 +24,10 @@ runs:
     #     key: julia-run-testitems-cache-${{ runner.os }}-${{ steps.julia-version.outputs.JULIA_VERSION }}-${{ steps.project-hash.outputs.MANIFEST_HASH }}
     - name: Install and precompile
       # if: steps.cache-project.outputs.cache-hit != 'true'
-      run: julia --project=${{ github.action_path }} -e 'import Pkg; Pkg.instantiate()'
+      run: julia -e 'import Pkg; Pkg.instantiate()'
       shell: bash
       env:
+        JULIA_PROJECT: ${{ github.action_path }}
         JULIA_DEPOT_PATH: ${{ runner.tool_cache }}/julia-run-testitems-depot
     # - uses: actions/cache/save@v3
     #   if: steps.cache-project.outputs.cache-hit != 'true'
