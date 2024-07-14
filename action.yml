@@ -43,4 +43,3 @@ runs:
       env:
         JULIA_DEPOT_PATH: ${{ runner.tool_cache }}/julia-run-testitems-depot
         TEST_JULIAUP_CHANNEL: ${{ inputs.juliaup-channel }}
-        TEST_JULIA_DEPOT_PATH: ${{ env.JULIA_DEPOT_PATH }}

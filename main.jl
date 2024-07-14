@@ -8,13 +8,10 @@ function esc_data(s)
 end
 
 juliaup_channel = ENV["TEST_JULIAUP_CHANNEL"]
-depot_path = ENV["TEST_JULIA_DEPOT_PATH"]
-
-println("THE TEST_JULIA_DEPOT_PATH is $depot_path")
 
 results = run_tests(
     pwd(),
-    environments=[TestEnvironment("Julia $juliaup_channel", true, Dict("JULIAUP_CHANNEL" => juliaup_channel,"JULIA_DEPOT_PATH" => depot_path))],
+    environments=[TestEnvironment("Julia $juliaup_channel", true, Dict("JULIAUP_CHANNEL" => juliaup_channel,"JULIA_DEPOT_PATH" => Sys.iswindows() ? ";" : ":"))],
     fail_on_detection_error=false,
     return_results=true,
     print_failed_results=true,
