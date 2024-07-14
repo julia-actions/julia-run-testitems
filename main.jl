@@ -7,11 +7,11 @@ function esc_data(s)
     return s
 end
 
-envs = JSON.parse(ENV["TEST_ENVIRONMENTS"])
+juliaup_channel = ENV["TEST_JULIAUP_CHANNEL"]
 
 results = run_tests(
     pwd(),
-    environments=[TestEnvironment(i["Name"], true, i["Env"]) for i in envs],
+    environments=[TestEnvironment("Julia $juliaup_channel", true, Dict("JULIAUP_CHANNEL" => juliaup_channel))],
     fail_on_detection_error=false,
     return_results=true,
     print_failed_results=false,
