@@ -32,7 +32,7 @@ at_least_one_fail = false
 
 for ti in results.testitems
     for p in ti.profiles
-        if p.status !="passed"
+        if p.status != :passed
             global at_least_one_fail = true
             break
         end
