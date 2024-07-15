@@ -9,9 +9,19 @@ end
 
 juliaup_channel = ENV["TEST_JULIAUP_CHANNEL"]
 
+const os = if Sys.iswindows()
+    "Windows"
+elseif Sys.isapple()
+    "MacOS"
+elseif Sys.islinux()
+    "Linux"
+else
+    error("Unknown platform")
+end
+
 results = run_tests(
     pwd(),
-    environments=[TestEnvironment("Julia $juliaup_channel", true, Dict{String,Any}("JULIAUP_CHANNEL" => juliaup_channel,"JULIA_DEPOT_PATH" => nothing))],
+    environments=[TestEnvironment("Julia $juliaup_channel on $os", true, Dict{String,Any}("JULIAUP_CHANNEL" => juliaup_channel,"JULIA_DEPOT_PATH" => nothing))],
     fail_on_detection_error=false,
     return_results=true,
     print_failed_results=true,
