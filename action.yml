@@ -3,6 +3,9 @@ description: 'Run tests that are based on the test item framework'
 inputs:
   juliaup-channel:
     required: false
+  results-path:
+    type: string
+    required: false
 runs:
   using: "composite"
   steps:
@@ -43,3 +46,4 @@ runs:
       env:
         JULIA_DEPOT_PATH: ${{ runner.tool_cache }}/julia-run-testitems-depot
         TEST_JULIAUP_CHANNEL: ${{ inputs.juliaup-channel }}
+        RESULTS_PATH: ${{ inputs.results-path }}

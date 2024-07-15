@@ -26,13 +26,26 @@ at_least_one_fail = false
 #     println("::error file=$(TestItemRunner2.uri2filepath(TestItemRunner2.URI(te.uri))),line=$(te.line),title=Test definition error::$(esc_data(te.message))")
 # end
 
-for result in results.test_results
-    if result.result.status!="passed"
-        global at_least_one_fail = true
-        for message in result.result.message
-            println()
-            println("::error file=$(TestItemRunner2.uri2filepath(TestItemRunner2.URI(message.location.uri))),line=$(message.location.range.start.line),endLine=$(message.location.range.stop.line),title=Test failure on $(result.testenvironment.name)::$(esc_data(message.message))")
-        end
+# for result in results.test_results
+#     if result.result.status!="passed"
+#         global at_least_one_fail = true
+#         for message in result.result.message
+#             println()
+#             println("::error file=$(TestItemRunner2.uri2filepath(TestItemRunner2.URI(message.location.uri))),line=$(message.location.range.start.line),endLine=$(message.location.range.stop.line),title=Test failure on $(result.testenvironment.name)::$(esc_data(message.message))")
+#         end
+#     end
+# end
+
+exported_results = Dict(
+    Dict("uri" => i.uri, "name" => i.name, "status" => i.result.status) for i in results.test_results
+)
+
+println("The JSON IS")
+JSON.print(exported_results)
+
+if haskey(ENV, "RESULTS_PATH")
+    open(ENV["RESULTS_PATH"], "w") do f
+        JSON.print(f, exported_results)
     end
 end
 
@@ -42,9 +55,9 @@ println()
 println()
 print_process_diag()
 
-open(ENV["GITHUB_STEP_SUMMARY"], "w") do f
-    println(f, "# Test summary from David")
-end
+# open(ENV["GITHUB_STEP_SUMMARY"], "w") do f
+#     println(f, "# Test summary from David")
+# end
 
 if at_least_one_fail
     exit(1)
