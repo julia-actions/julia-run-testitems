@@ -30,6 +30,15 @@ results = run_tests(
 
 at_least_one_fail = false
 
+for ti in results.testitems
+    for p in ti.profiles
+        if p.status !="passed"
+            at_least_one_fail = true
+            break
+        end
+    end
+end
+
 # for te in results.definition_errors
 #     global at_least_one_fail = true
 #     println()
