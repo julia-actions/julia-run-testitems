@@ -42,7 +42,7 @@ at_least_one_fail = false
 
 exported_results = results
 
-# JSON.lower(uri::TestItemRunner2.URI) = string(uri)
+JSON.lower(uri::TestItemRunner2.URI) = string(uri)
 
 println("The JSON IS")
 JSON.print(exported_results)
