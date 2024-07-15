@@ -36,9 +36,9 @@ at_least_one_fail = false
 #     end
 # end
 
-exported_results = Dict(
+exported_results = [
     Dict("uri" => string(i.testitem.uri), "name" => i.testitem.detail.name, "status" => i.result.status) for i in results.test_results
-)
+]
 
 println("The JSON IS")
 JSON.print(exported_results)
