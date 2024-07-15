@@ -21,7 +21,7 @@ end
 
 results = run_tests(
     pwd(),
-    environments=[TestEnvironment("$juliaup_channel:$os", true, Dict{String,Any}("JULIAUP_CHANNEL" => juliaup_channel,"JULIA_DEPOT_PATH" => nothing))],
+    environments=[TestEnvironment("Julia $juliaup_channel:$os", true, Dict{String,Any}("JULIAUP_CHANNEL" => juliaup_channel,"JULIA_DEPOT_PATH" => nothing))],
     fail_on_detection_error=false,
     return_results=true,
     print_failed_results=true,
