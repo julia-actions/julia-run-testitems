@@ -33,7 +33,7 @@ at_least_one_fail = false
 for ti in results.testitems
     for p in ti.profiles
         if p.status !="passed"
-            at_least_one_fail = true
+            global at_least_one_fail = true
             break
         end
     end
@@ -62,9 +62,6 @@ end
 exported_results = results
 
 JSON.lower(uri::TestItemRunner2.URI) = string(uri)
-
-println("The JSON IS")
-JSON.print(exported_results)
 
 if haskey(ENV, "RESULTS_PATH")
     open(ENV["RESULTS_PATH"], "w") do f
