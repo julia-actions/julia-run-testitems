@@ -2,6 +2,14 @@ using TestItemRunner2, JSON
 
 println("THE CONTENT OF THE ENV IS ", ENV["TEST_ENV"])
 
+env_dict = Dict{String,Any}()
+
+if ENV["TEST_ENV"] != ""
+    for (k,v) in JSON.parse(ENV["TEST_ENV"])
+        env_dict[k] = v
+    end
+end
+
 function esc_data(s)
     s = replace(s, '%' => "%25")
     s = replace(s, '\r' => "%0D")
@@ -10,6 +18,9 @@ function esc_data(s)
 end
 
 juliaup_channel = ENV["TEST_JULIAUP_CHANNEL"]
+
+env_dict["JULIAUP_CHANNEL"] = juliaup_channel
+env_dict["JULIA_DEPOT_PATH"] = nothing
 
 const os = if Sys.iswindows()
     "Windows"
@@ -23,7 +34,7 @@ end
 
 results = run_tests(
     pwd(),
-    environments=[TestEnvironment("Julia $juliaup_channel:$os", true, Dict{String,Any}("JULIAUP_CHANNEL" => juliaup_channel,"JULIA_DEPOT_PATH" => nothing))],
+    environments=[TestEnvironment("Julia $juliaup_channel:$os", true, env_dict)],
     fail_on_detection_error=false,
     return_results=true,
     print_failed_results=true,
