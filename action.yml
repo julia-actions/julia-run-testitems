@@ -6,6 +6,8 @@ inputs:
   results-path:
     type: string
     required: false
+  env:
+    required: false
 runs:
   using: "composite"
   steps:
@@ -46,4 +48,5 @@ runs:
       env:
         JULIA_DEPOT_PATH: ${{ runner.tool_cache }}/julia-run-testitems-depot
         TEST_JULIAUP_CHANNEL: ${{ inputs.juliaup-channel }}
+        TEST_ENV: ${{ inputs.env }}
         RESULTS_PATH: ${{ inputs.results-path }}

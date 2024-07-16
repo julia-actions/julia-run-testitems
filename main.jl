@@ -1,5 +1,7 @@
 using TestItemRunner2, JSON
 
+println("THE CONTENT OF THE ENV IS ", ENV["TEST_ENV"])
+
 function esc_data(s)
     s = replace(s, '%' => "%25")
     s = replace(s, '\r' => "%0D")
