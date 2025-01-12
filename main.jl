@@ -1,5 +1,7 @@
 using TestItemRunner2, JSON
 
+@info "WE ARE ON v2"
+
 println("THE CONTENT OF THE ENV IS ", ENV["TEST_ENV"])
 
 env_dict = Dict{String,Any}()
