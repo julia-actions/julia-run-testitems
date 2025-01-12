@@ -44,7 +44,7 @@ runs:
         path: ${{ runner.tool_cache }}/julia-run-testitems-depot
         key: julia-run-testitems-cache-${{ runner.os }}-${{ steps.julia-version.outputs.JULIA_VERSION }}-${{ steps.project-hash.outputs.MANIFEST_HASH }}
     - name: Run test items
-      run: julia +release --project=${{ github.action_path }} ${{ github.action_path }}/main.jl ${{ runner.debug }}
+      run: julia +release --project=${{ github.action_path }} ${{ github.action_path }}/main.jl ${{ runner.debug==1 && 'debug' || 'nodebug' }}
       shell: pwsh
       env:
         JULIA_DEPOT_PATH: ${{ runner.tool_cache }}/julia-run-testitems-depot
