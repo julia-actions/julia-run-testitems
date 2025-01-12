@@ -352,7 +352,7 @@ version = "1.1.0"
 
 [[deps.TestItemRunner2]]
 deps = ["JuliaWorkspaces", "ProgressMeter", "Query", "TestItemControllers", "UUIDs"]
-git-tree-sha1 = "c6958eaf6d2dd5d72d1a1a9c1df9a1f8549cf0f7"
+git-tree-sha1 = "c79db8bcd9932ec6aac2314e8110e7411aa8ae1a"
 repo-rev = "next"
 repo-url = "https://github.com/julia-vscode/TestItemRunner2.jl"
 uuid = "e1dee961-0fd3-483e-9ab1-c4c3c701c341"
