@@ -34,11 +34,13 @@ end
 
 results = run_tests(
     pwd(),
-    environments=[TestEnvironment("Julia $juliaup_channel:$os", true, env_dict)],
     fail_on_detection_error=false,
     return_results=true,
     print_failed_results=true,
-    progress_ui=:log    
+    progress_ui=:log,
+    profile_name = "Julia $juliaup_channel:$os",
+    env = env_dict,
+    coverage = true
 )
 
 at_least_one_fail = false
