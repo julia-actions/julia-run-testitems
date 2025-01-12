@@ -1,6 +1,12 @@
-using TestItemRunner2, JSON
+using TestItemRunner2, JSON, Logging
 
-@info "ARGS is" ARGS
+if ARGS[1] == "nodebug"
+    global_logger(ConsoleLogger(Warn))
+elseif ARGS[1] == "debug"
+    ENV["JULIA_DEBUG"] = "Main,TestItemRunner2,TestItemControllers"
+else
+    error("Unknown command line argument $(ARGS[1]).")
+end
 
 @info "WE ARE ON v2"
 
