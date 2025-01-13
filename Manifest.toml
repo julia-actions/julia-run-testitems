@@ -338,7 +338,7 @@ version = "1.11.0"
 
 [[deps.TestItemControllers]]
 deps = ["Dates", "Mmap", "Sockets", "UUIDs", "Unicode"]
-git-tree-sha1 = "b758277808c072da5a02b3d88090168d6dd3f26c"
+git-tree-sha1 = "efc259a3f492698a29d3c1dc35cf90ff82dc4fae"
 repo-rev = "main"
 repo-url = "https://github.com/julia-vscode/TestItemControllers.jl"
 uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
@@ -352,7 +352,7 @@ version = "1.1.0"
 
 [[deps.TestItemRunner2]]
 deps = ["JuliaWorkspaces", "ProgressMeter", "Query", "TestItemControllers", "UUIDs"]
-git-tree-sha1 = "72d4b08cffc3f5dc10a5b13f1d6a80b20e9affc6"
+git-tree-sha1 = "ee73e54e16d2d84fbb129e9aa3b64ff0b5bb94f9"
 repo-rev = "next"
 repo-url = "https://github.com/julia-vscode/TestItemRunner2.jl"
 uuid = "e1dee961-0fd3-483e-9ab1-c4c3c701c341"
