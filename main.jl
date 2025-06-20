@@ -38,7 +38,8 @@ results = run_tests(
     fail_on_detection_error=false,
     return_results=true,
     print_failed_results=true,
-    progress_ui=:log    
+    progress_ui=:log,
+    timeout=20*60
 )
 
 at_least_one_fail = false
