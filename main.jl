@@ -1,4 +1,14 @@
-using TestItemRunner2, JSON
+using TestItemRunner2, JSON, Logging
+
+if ARGS[1] == "nodebug"
+    global_logger(ConsoleLogger(Warn))
+elseif ARGS[1] == "debug"
+    ENV["JULIA_DEBUG"] = "Main,TestItemRunner2,TestItemControllers"
+else
+    error("Unknown command line argument $(ARGS[1]).")
+end
+
+@info "WE ARE ON v2"
 
 println("THE CONTENT OF THE ENV IS ", ENV["TEST_ENV"])
 
@@ -34,7 +44,6 @@ end
 
 results = run_tests(
     pwd(),
-    environments=[TestEnvironment("Julia $juliaup_channel:$os", true, env_dict)],
     fail_on_detection_error=false,
     return_results=true,
     print_failed_results=true,
@@ -88,6 +97,8 @@ println("NOW SHOWING SOME PROC DIAG")
 println()
 println()
 print_process_diag()
+
+TestItemRunner2.kill_controller()
 
 # open(ENV["GITHUB_STEP_SUMMARY"], "w") do f
 #     println(f, "# Test summary from David")
