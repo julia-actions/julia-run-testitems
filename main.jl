@@ -92,13 +92,13 @@ if haskey(ENV, "RESULTS_PATH")
     end
 end
 
-println()
-println("NOW SHOWING SOME PROC DIAG")
-println()
-println()
-print_process_diag()
+# println()
+# println("NOW SHOWING SOME PROC DIAG")
+# println()
+# println()
+# print_process_diag()
 
-TestItemRunner2.kill_controller()
+# TestItemRunner2.kill_controller()
 
 # open(ENV["GITHUB_STEP_SUMMARY"], "w") do f
 #     println(f, "# Test summary from David")
