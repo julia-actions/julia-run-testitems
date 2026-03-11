@@ -8,39 +8,22 @@ else
     error("Unknown command line argument $(ARGS[1]).")
 end
 
-@info "WE ARE ON v2"
-
-println("THE CONTENT OF THE ENV IS ", ENV["TEST_ENV"])
-
 env_dict = Dict{String,Any}()
 
-if ENV["TEST_ENV"] != ""
-    for (k,v) in JSON.parse(ENV["TEST_ENV"])
+test_env_str = get(ENV, "TEST_ENV", "")
+if test_env_str != ""
+    for (k,v) in JSON.parse(test_env_str)
         env_dict[k] = v
     end
 end
 
-function esc_data(s)
-    s = replace(s, '%' => "%25")
-    s = replace(s, '\r' => "%0D")
-    s = replace(s, '\n' => "%0A")
-    return s
+juliaup_channel = get(ENV, "TEST_JULIAUP_CHANNEL", "release")
+if isempty(juliaup_channel)
+    juliaup_channel = "release"
 end
-
-juliaup_channel = ENV["TEST_JULIAUP_CHANNEL"]
 
 env_dict["JULIAUP_CHANNEL"] = juliaup_channel
 env_dict["JULIA_DEPOT_PATH"] = nothing
-
-const os = if Sys.iswindows()
-    "Windows"
-elseif Sys.isapple()
-    "MacOS"
-elseif Sys.islinux()
-    "Linux"
-else
-    error("Unknown platform")
-end
 
 results = run_tests(
     pwd(),
@@ -48,7 +31,8 @@ results = run_tests(
     return_results=true,
     print_failed_results=true,
     progress_ui=:log,
-    timeout=20*60
+    timeout=20*60,
+    environments=[TestItemRunner2.TestEnvironment("Default", false, env_dict)]
 )
 
 at_least_one_fail = false
@@ -62,47 +46,16 @@ for ti in results.testitems
     end
 end
 
-# for te in results.definition_errors
-#     global at_least_one_fail = true
-#     println()
-#     println("::error file=$(TestItemRunner2.uri2filepath(TestItemRunner2.URI(te.uri))),line=$(te.line),title=Test definition error::$(esc_data(te.message))")
-# end
-
-# for result in results.test_results
-#     if result.result.status!="passed"
-#         global at_least_one_fail = true
-#         for message in result.result.message
-#             println()
-#             println("::error file=$(TestItemRunner2.uri2filepath(TestItemRunner2.URI(message.location.uri))),line=$(message.location.range.start.line),endLine=$(message.location.range.stop.line),title=Test failure on $(result.testenvironment.name)::$(esc_data(message.message))")
-#         end
-#     end
-# end
-
-# exported_results = [
-#     Dict("uri" => string(i.testitem.uri), "name" => i.testitem.detail.name, "status" => i.result.status) for i in results.test_results
-# ]
-
-exported_results = results
-
 JSON.lower(uri::TestItemRunner2.URI) = string(uri)
 
-if haskey(ENV, "RESULTS_PATH")
-    open(ENV["RESULTS_PATH"], "w") do f
-        JSON.print(f, exported_results)
+results_path = get(ENV, "RESULTS_PATH", "")
+if !isempty(results_path)
+    open(results_path, "w") do f
+        JSON.print(f, results)
     end
 end
 
-# println()
-# println("NOW SHOWING SOME PROC DIAG")
-# println()
-# println()
-# print_process_diag()
-
-# TestItemRunner2.kill_controller()
-
-# open(ENV["GITHUB_STEP_SUMMARY"], "w") do f
-#     println(f, "# Test summary from David")
-# end
+TestItemRunner2.kill_test_processes()
 
 if at_least_one_fail
     exit(1)
