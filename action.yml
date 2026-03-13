@@ -15,25 +15,21 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Compute Manifest hash
-      id: project-hash
-      shell: pwsh
-      run: |
-        $ourHash = Get-FileHash -LiteralPath "$env:GITHUB_ACTION_PATH\Manifest.toml"
-        "MANIFEST_HASH=$($ourHash.Hash)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-    - name: Install release channel
+    - name: Setup Julia and compute cache keys
+      id: setup
       shell: bash
-      run: juliaup add release
-    - name: Check Julia version
-      shell: bash
-      id: julia-version
       run: |
+        juliaup add release
         echo "JULIA_VERSION=$(julia +release -v)" >> $GITHUB_OUTPUT
-    - uses: actions/cache@v4
+        echo "MANIFEST_HASH=$(sha256sum "$GITHUB_ACTION_PATH/Manifest.toml" | cut -d ' ' -f1)" >> $GITHUB_OUTPUT
+    - uses: actions/cache/restore@v4
       id: cache-project
       with:
         path: ${{ runner.tool_cache }}/julia-run-testitems-depot
-        key: julia-run-testitems-cache-${{ runner.os }}-${{ steps.julia-version.outputs.JULIA_VERSION }}-${{ steps.project-hash.outputs.MANIFEST_HASH }}
+        key: julia-run-testitems-v2-${{ runner.os }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
+        restore-keys: |
+          julia-run-testitems-v2-${{ runner.os }}-${{ steps.setup.outputs.JULIA_VERSION }}-
+          julia-run-testitems-v2-${{ runner.os }}-
     - name: Install and precompile
       if: steps.cache-project.outputs.cache-hit != 'true'
       run: julia +release -e 'import Pkg; Pkg.instantiate()'
@@ -45,7 +41,7 @@ runs:
       if: steps.cache-project.outputs.cache-hit != 'true'
       with:
         path: ${{ runner.tool_cache }}/julia-run-testitems-depot
-        key: julia-run-testitems-cache-${{ runner.os }}-${{ steps.julia-version.outputs.JULIA_VERSION }}-${{ steps.project-hash.outputs.MANIFEST_HASH }}
+        key: julia-run-testitems-v2-${{ runner.os }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
     - name: Run test items
       run: julia +release --project=${{ github.action_path }} ${{ github.action_path }}/main.jl ${{ runner.debug==1 && 'debug' || 'nodebug' }}
       shell: pwsh
