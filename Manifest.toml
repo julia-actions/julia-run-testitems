@@ -23,9 +23,9 @@ version = "1.11.0"
 
 [[deps.CancellationTokens]]
 deps = ["Sockets"]
-git-tree-sha1 = "fe0f4e7c1ea54da28553878c7e8ceb816d130b20"
+git-tree-sha1 = "1e61b0c7d5e2f96ea1324360694ee8462ef72457"
 uuid = "2e8d271d-f2e2-407b-a864-17eb2156783e"
-version = "1.2.0"
+version = "1.2.1"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -344,7 +344,7 @@ version = "1.11.0"
 
 [[deps.TestItemControllers]]
 deps = ["Dates", "Mmap", "Sockets", "UUIDs", "Unicode"]
-git-tree-sha1 = "f8140b22947f5d8c1a47af721c79f68b072a73d2"
+git-tree-sha1 = "84a1389ea66153a3c39f4aba35d2f41da3cc24dd"
 repo-rev = "main"
 repo-url = "https://github.com/julia-vscode/TestItemControllers.jl"
 uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
