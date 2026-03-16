@@ -1,9 +1,10 @@
-using TestItemRunner2, JSON, Logging
+using TestItemRunnerCore, JSON, Logging
+using JuliaWorkspaces.URIs2: URI
 
 if ARGS[1] == "nodebug"
     global_logger(ConsoleLogger(Warn))
 elseif ARGS[1] == "debug"
-    ENV["JULIA_DEBUG"] = "Main,TestItemRunner2,TestItemControllers"
+    ENV["JULIA_DEBUG"] = "Main,TestItemRunnerCore,TestItemControllers"
 else
     error("Unknown command line argument $(ARGS[1]).")
 end
@@ -42,7 +43,7 @@ results = run_tests(
     print_failed_results=true,
     progress_ui=:log,
     timeout=20*60,
-    environments=[TestItemRunner2.TestEnvironment("Default", false, env_dict)]
+    environments=[RunProfile("Default", false, env_dict)]
 )
 
 at_least_one_fail = false
@@ -56,7 +57,7 @@ for ti in results.testitems
     end
 end
 
-JSON.lower(uri::TestItemRunner2.URI) = string(uri)
+JSON.lower(uri::URI) = string(uri)
 
 results_path = get(ENV, "RESULTS_PATH", "")
 if !isempty(results_path)
@@ -65,7 +66,7 @@ if !isempty(results_path)
     end
 end
 
-TestItemRunner2.kill_test_processes()
+kill_test_processes()
 
 if at_least_one_fail
     exit(1)
