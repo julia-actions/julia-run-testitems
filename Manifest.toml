@@ -358,7 +358,7 @@ version = "1.1.0"
 
 [[deps.TestItemRunnerCore]]
 deps = ["AutoHashEquals", "Dates", "Distributed", "JSON", "JSONRPC", "JuliaWorkspaces", "Logging", "Mmap", "Printf", "ProgressMeter", "Query", "Sockets", "TOML", "TestItemControllers", "UUIDs", "Unicode"]
-git-tree-sha1 = "4951235e6e98c5f4d1d1cbe1f6eeaf5133584609"
+git-tree-sha1 = "87492892a1dd5781009cda2dfec0e45af67d5c03"
 repo-rev = "main"
 repo-url = "https://github.com/julia-vscode/TestItemRunnerCore.jl"
 uuid = "f0955e71-0b96-4c6b-b0a1-15a26c19f143"
