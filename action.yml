@@ -12,6 +12,9 @@ inputs:
   filter:
     required: false
     default: ""
+  testitem-timeout:
+    required: false
+    default: "1200"
 runs:
   using: "composite"
   steps:
@@ -50,5 +53,6 @@ runs:
         TEST_JULIAUP_CHANNEL: ${{ inputs.juliaup-channel }}
         TEST_ENV: ${{ inputs.env }}
         TEST_FILTER: ${{ inputs.filter }}
+        TEST_TIMEOUT: ${{ inputs.testitem-timeout }}
         RESULTS_PATH: ${{ inputs.results-path }}
         JULIA_DEBUG: "TestItemControllers"

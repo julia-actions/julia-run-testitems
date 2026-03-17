@@ -35,6 +35,8 @@ if !isempty(filter_expr_str)
     end))
 end
 
+testitem_timeout = parse(Int, get(ENV, "TEST_TIMEOUT", "1200"))
+
 results = run_tests(
     pwd(),
     filter=filter_func,
@@ -42,7 +44,7 @@ results = run_tests(
     return_results=true,
     print_failed_results=true,
     progress_ui=:log,
-    timeout=20*60,
+    timeout=testitem_timeout,
     environments=[RunProfile("Default", false, env_dict)]
 )
 
