@@ -55,4 +55,3 @@ runs:
         TEST_FILTER: ${{ inputs.filter }}
         TEST_TIMEOUT: ${{ inputs.testitem-timeout }}
         RESULTS_PATH: ${{ inputs.results-path }}
-        JULIA_DEBUG: "TestItemControllers"
