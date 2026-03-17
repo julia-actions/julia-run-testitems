@@ -51,3 +51,4 @@ runs:
         TEST_ENV: ${{ inputs.env }}
         TEST_FILTER: ${{ inputs.filter }}
         RESULTS_PATH: ${{ inputs.results-path }}
+        JULIA_DEBUG: "TestItemControllers"
