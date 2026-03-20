@@ -37,6 +37,11 @@ end
 
 testitem_timeout = parse(Int, get(ENV, "TEST_TIMEOUT", "1200"))
 
+profile_name = get(ENV, "TEST_PROFILE_NAME", "")
+if isempty(profile_name)
+    profile_name = "Default"
+end
+
 results = run_tests(
     pwd(),
     filter=filter_func,
@@ -45,7 +50,7 @@ results = run_tests(
     print_failed_results=true,
     progress_ui=:log,
     timeout=testitem_timeout,
-    environments=[RunProfile("Default", false, env_dict)]
+    environments=[RunProfile(profile_name, false, env_dict)]
 )
 
 at_least_one_fail = false

@@ -12,6 +12,9 @@ inputs:
   filter:
     required: false
     default: ""
+  profile-name:
+    required: false
+    default: ""
   testitem-timeout:
     required: false
     default: "1200"
@@ -54,4 +57,5 @@ runs:
         TEST_ENV: ${{ inputs.env }}
         TEST_FILTER: ${{ inputs.filter }}
         TEST_TIMEOUT: ${{ inputs.testitem-timeout }}
+        TEST_PROFILE_NAME: ${{ inputs.profile-name }}
         RESULTS_PATH: ${{ inputs.results-path }}
