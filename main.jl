@@ -30,7 +30,7 @@ filter_func = nothing
 filter_expr_str = get(ENV, "TEST_FILTER", "")
 if !isempty(filter_expr_str)
     filter_expr = Meta.parse(filter_expr_str)
-    filter_func = eval(:(i -> let name=i.name, tags=i.tags, filename=i.filename, package_name=i.package_name
+    filter_func = eval(:(i -> let name=i.name, tags=i.tags, filename=realpath(i.filename), package_name=i.package_name
         $filter_expr
     end))
 end
