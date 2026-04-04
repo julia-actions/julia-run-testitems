@@ -75,6 +75,4 @@ end
 
 kill_test_processes()
 
-if at_least_one_fail
-    exit(1)
-end
+exit(at_least_one_fail ? 1 : 0)
