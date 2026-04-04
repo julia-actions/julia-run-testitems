@@ -32,10 +32,10 @@ runs:
       id: cache-project
       with:
         path: ${{ runner.tool_cache }}/julia-run-testitems-depot
-        key: julia-run-testitems-v2-${{ runner.os }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
+        key: julia-run-testitems-v3-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
         restore-keys: |
-          julia-run-testitems-v2-${{ runner.os }}-${{ steps.setup.outputs.JULIA_VERSION }}-
-          julia-run-testitems-v2-${{ runner.os }}-
+          julia-run-testitems-v3-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.JULIA_VERSION }}-
+          julia-run-testitems-v3-${{ runner.os }}-${{ runner.arch }}-
     - name: Install and precompile
       if: steps.cache-project.outputs.cache-hit != 'true'
       run: julia +release -e 'import Pkg; Pkg.instantiate()'
@@ -47,7 +47,7 @@ runs:
       if: steps.cache-project.outputs.cache-hit != 'true'
       with:
         path: ${{ runner.tool_cache }}/julia-run-testitems-depot
-        key: julia-run-testitems-v2-${{ runner.os }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
+        key: julia-run-testitems-v3-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
     - name: Run test items
       run: julia +release --project=${{ github.action_path }} ${{ github.action_path }}/main.jl ${{ runner.debug==1 && 'debug' || 'nodebug' }}
       shell: pwsh
