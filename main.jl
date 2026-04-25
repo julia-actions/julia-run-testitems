@@ -73,10 +73,10 @@ if !isempty(results_path)
     end
 end
 
-@info "Before kill_test_processes()"
+@warn "Before kill_test_processes()"
 
 kill_test_processes()
 
-@info "Before final exit call"
+@warn "Before final exit call"
 
 exit(at_least_one_fail ? 1 : 0)
