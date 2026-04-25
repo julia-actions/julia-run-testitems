@@ -344,7 +344,7 @@ version = "1.11.0"
 
 [[deps.TestItemControllers]]
 deps = ["Dates", "Mmap", "Sockets", "UUIDs", "Unicode"]
-git-tree-sha1 = "e5e9d44f16571d42a9ea7fbf2ae12c56a1a3096c"
+git-tree-sha1 = "d82d908e9cc06ac6313c2b484a3c85afb8b73736"
 repo-rev = "main"
 repo-url = "https://github.com/julia-vscode/TestItemControllers.jl"
 uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
