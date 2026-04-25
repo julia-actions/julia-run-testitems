@@ -26,16 +26,16 @@ runs:
       shell: bash
       run: |
         juliaup add release
-        echo "JULIA_VERSION=$(julia +release -v)" >> $GITHUB_OUTPUT
+        echo "JULIA_RELEASE_VERSION=$(julia +release -v)" >> $GITHUB_OUTPUT
+        echo "JULIA_VERSION=$(julia -v)" >> $GITHUB_OUTPUT
         echo "MANIFEST_HASH=$(sha256sum "$GITHUB_ACTION_PATH/Manifest.toml" | cut -d ' ' -f1)" >> $GITHUB_OUTPUT
     - uses: actions/cache/restore@v4
       id: cache-project
       with:
         path: ${{ runner.tool_cache }}/julia-run-testitems-depot
-        key: julia-run-testitems-v3-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
+        key: julia-run-testitems-v4-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.JULIA_RELEASE_VERSION }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
         restore-keys: |
-          julia-run-testitems-v3-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.JULIA_VERSION }}-
-          julia-run-testitems-v3-${{ runner.os }}-${{ runner.arch }}-
+          julia-run-testitems-v4-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.JULIA_RELEASE_VERSION }}-${{ steps.setup.outputs.JULIA_VERSION }}-
     - name: Install and precompile
       if: steps.cache-project.outputs.cache-hit != 'true'
       run: julia +release -e 'import Pkg; Pkg.instantiate()'
@@ -47,7 +47,7 @@ runs:
       if: steps.cache-project.outputs.cache-hit != 'true'
       with:
         path: ${{ runner.tool_cache }}/julia-run-testitems-depot
-        key: julia-run-testitems-v3-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
+        key: julia-run-testitems-v4-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.JULIA_RELEASE_VERSION }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
     - name: Run test items
       run: julia +release --project=${{ github.action_path }} ${{ github.action_path }}/main.jl ${{ runner.debug==1 && 'debug' || 'nodebug' }}
       shell: pwsh
