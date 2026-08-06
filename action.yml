@@ -49,7 +49,18 @@ runs:
         path: ${{ runner.tool_cache }}/julia-run-testitems-depot
         key: julia-run-testitems-v4-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.JULIA_RELEASE_VERSION }}-${{ steps.setup.outputs.JULIA_VERSION }}-${{ steps.setup.outputs.MANIFEST_HASH }}
     - name: Run test items
-      run: julia +release --project=${{ github.action_path }} ${{ github.action_path }}/main.jl ${{ runner.debug==1 && 'debug' || 'nodebug' }}
+      run: |
+        $jargs = @('.', '--progress', 'log', '--no-fail-on-detection-error')
+        $channel = if ($env:TEST_JULIAUP_CHANNEL) { $env:TEST_JULIAUP_CHANNEL } else { 'release' }
+        $jargs += @('--juliaup-channel', $channel)
+        $jargs += @('--timeout', $env:TEST_TIMEOUT)
+        if ($env:TEST_ENV) { $jargs += @('--env-json', $env:TEST_ENV) }
+        if ($env:TEST_FILTER) { $jargs += @('--filter', $env:TEST_FILTER) }
+        if ($env:TEST_PROFILE_NAME) { $jargs += @('--profile-name', $env:TEST_PROFILE_NAME) }
+        if ($env:RESULTS_PATH) { $jargs += @('--results-json', $env:RESULTS_PATH) }
+        if ($env:RUNNER_DEBUG -eq '1') { $jargs += '--debug' }
+        julia +release --project=$env:GITHUB_ACTION_PATH -m TestItemApp @jargs
+        exit $LASTEXITCODE
       shell: pwsh
       env:
         JULIA_DEPOT_PATH: ${{ runner.tool_cache }}/julia-run-testitems-depot
