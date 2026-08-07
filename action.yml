@@ -1,23 +1,57 @@
 name: 'Run Julia test items'
-description: 'Run tests that are based on the test item framework'
+description: 'Run @testitem-based Julia tests via the juliati CLI (TestItemApp.jl)'
 inputs:
+  test-path:
+    description: 'Directory to search for test items (relative to the workspace)'
+    required: false
+    default: '.'
   juliaup-channel:
+    description: 'Juliaup channel used for the test worker processes (default: release)'
     required: false
+    default: ''
   results-path:
-    type: string
+    description: >-
+      Path to write the test-run results JSON (TestItemControllers.Results format).
+      This is mainly the integration point for julia-actions/julia-report-ci-results;
+      leave unset when not aggregating results across jobs.
     required: false
+    default: ''
   env:
+    description: >-
+      Environment variables for the test processes, as a JSON object string,
+      e.g. '{"FOO": "bar"}' (not KEY=VALUE lines).
     required: false
-    default: ""
+    default: ''
   filter:
+    description: >-
+      Julia expression over `name`, `tags`, `filename` and `package_name`; only test
+      items for which it evaluates to true are run, e.g. ':ci in tags'.
     required: false
-    default: ""
+    default: ''
   profile-name:
+    description: 'Profile name recorded in the results JSON (default: Default)'
     required: false
-    default: ""
+    default: ''
   testitem-timeout:
+    description: 'Per-test-item timeout in seconds'
     required: false
-    default: "1200"
+    default: '1200'
+  coverage:
+    description: 'Run the test processes in coverage mode'
+    required: false
+    default: 'false'
+  max-workers:
+    description: 'Maximum number of parallel test processes (default: the juliati default)'
+    required: false
+    default: ''
+  annotations:
+    description: 'Emit GitHub error annotations for failed test items'
+    required: false
+    default: 'true'
+outputs:
+  results-path:
+    description: 'Path of the results JSON that was written (empty if none was written)'
+    value: ${{ steps.run.outputs.results-path }}
 runs:
   using: "composite"
   steps:
@@ -30,23 +64,48 @@ runs:
       env:
         JULIA_PROJECT: ${{ github.action_path }}
     - name: Run test items
+      id: run
       run: |
-        $jargs = @('.', '--progress', 'log', '--no-fail-on-detection-error')
+        $resultsFile = $env:RESULTS_PATH
+        if (-not $resultsFile -and $env:ANNOTATIONS -eq 'true') {
+          $resultsFile = Join-Path $env:RUNNER_TEMP 'testitem-results.json'
+        }
+        $testPath = if ($env:TEST_PATH) { $env:TEST_PATH } else { '.' }
+        $jargs = @($testPath, '--progress', 'log', '--no-fail-on-detection-error')
         $channel = if ($env:TEST_JULIAUP_CHANNEL) { $env:TEST_JULIAUP_CHANNEL } else { 'release' }
         $jargs += @('--juliaup-channel', $channel)
-        $jargs += @('--timeout', $env:TEST_TIMEOUT)
+        if ($env:TEST_TIMEOUT) { $jargs += @('--timeout', $env:TEST_TIMEOUT) }
         if ($env:TEST_ENV) { $jargs += @('--env-json', $env:TEST_ENV) }
         if ($env:TEST_FILTER) { $jargs += @('--filter', $env:TEST_FILTER) }
         if ($env:TEST_PROFILE_NAME) { $jargs += @('--profile-name', $env:TEST_PROFILE_NAME) }
-        if ($env:RESULTS_PATH) { $jargs += @('--results-json', $env:RESULTS_PATH) }
+        if ($resultsFile) { $jargs += @('--results-json', $resultsFile) }
+        if ($env:TEST_COVERAGE -eq 'true') { $jargs += '--coverage' }
+        if ($env:TEST_MAX_WORKERS) { $jargs += @('--max-workers', $env:TEST_MAX_WORKERS) }
         if ($env:RUNNER_DEBUG -eq '1') { $jargs += '--debug' }
         julia +release --project=$env:GITHUB_ACTION_PATH -m TestItemApp @jargs
-        exit $LASTEXITCODE
+        "exit-code=$LASTEXITCODE" >> $env:GITHUB_OUTPUT
+        "results-path=$resultsFile" >> $env:GITHUB_OUTPUT
       shell: pwsh
       env:
+        TEST_PATH: ${{ inputs.test-path }}
         TEST_JULIAUP_CHANNEL: ${{ inputs.juliaup-channel }}
         TEST_ENV: ${{ inputs.env }}
         TEST_FILTER: ${{ inputs.filter }}
         TEST_TIMEOUT: ${{ inputs.testitem-timeout }}
         TEST_PROFILE_NAME: ${{ inputs.profile-name }}
+        TEST_COVERAGE: ${{ inputs.coverage }}
+        TEST_MAX_WORKERS: ${{ inputs.max-workers }}
         RESULTS_PATH: ${{ inputs.results-path }}
+        ANNOTATIONS: ${{ inputs.annotations }}
+    - name: Emit failure annotations
+      if: inputs.annotations == 'true'
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/scripts/annotations.js" "$RESULTS_FILE"
+      env:
+        RESULTS_FILE: ${{ steps.run.outputs.results-path }}
+    - name: Fail if tests failed
+      shell: bash
+      # An empty exit code means the run step never reported one — fail, don't pass.
+      run: exit ${CODE:-1}
+      env:
+        CODE: ${{ steps.run.outputs.exit-code }}
