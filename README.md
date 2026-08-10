@@ -36,6 +36,7 @@ All inputs are optional.
 | `testitem-timeout` | `1200` | Per-test-item timeout in seconds. |
 | `coverage` | `false` | Run the test processes in coverage mode. |
 | `max-workers` | *(juliati default)* | Maximum number of parallel test processes. |
+| `check-bounds` | `yes` | `--check-bounds` mode for the test processes: `yes` forces bounds checks everywhere (matching `Pkg.test` semantics); `auto` respects `@inbounds` annotations and reuses existing precompile caches. |
 | `annotations` | `true` | Emit GitHub error annotations for failed test items. |
 
 ## Outputs

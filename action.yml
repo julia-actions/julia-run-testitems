@@ -44,6 +44,13 @@ inputs:
     description: 'Maximum number of parallel test processes (default: the juliati default)'
     required: false
     default: ''
+  check-bounds:
+    description: >-
+      --check-bounds mode for the test processes: 'yes' (default) forces bounds checks
+      everywhere, matching Pkg.test semantics; 'auto' respects @inbounds annotations
+      and reuses existing precompile caches.
+    required: false
+    default: 'yes'
   annotations:
     description: 'Emit GitHub error annotations for failed test items'
     required: false
@@ -81,6 +88,7 @@ runs:
         if ($resultsFile) { $jargs += @('--results-json', $resultsFile) }
         if ($env:TEST_COVERAGE -eq 'true') { $jargs += '--coverage' }
         if ($env:TEST_MAX_WORKERS) { $jargs += @('--max-workers', $env:TEST_MAX_WORKERS) }
+        if ($env:TEST_CHECK_BOUNDS) { $jargs += @('--check-bounds', $env:TEST_CHECK_BOUNDS) }
         if ($env:RUNNER_DEBUG -eq '1') { $jargs += '--debug' }
         julia +release --project=$env:GITHUB_ACTION_PATH -m TestItemApp @jargs
         "exit-code=$LASTEXITCODE" >> $env:GITHUB_OUTPUT
@@ -95,6 +103,7 @@ runs:
         TEST_PROFILE_NAME: ${{ inputs.profile-name }}
         TEST_COVERAGE: ${{ inputs.coverage }}
         TEST_MAX_WORKERS: ${{ inputs.max-workers }}
+        TEST_CHECK_BOUNDS: ${{ inputs.check-bounds }}
         RESULTS_PATH: ${{ inputs.results-path }}
         ANNOTATIONS: ${{ inputs.annotations }}
     - name: Emit failure annotations
