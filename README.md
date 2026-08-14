@@ -36,14 +36,22 @@ All inputs are optional.
 | `testitem-timeout` | `1200` | Per-test-item timeout in seconds. |
 | `coverage` | `false` | Run the test processes in coverage mode. |
 | `max-workers` | *(juliati default)* | Maximum number of parallel test processes. |
-| `check-bounds` | `yes` | `--check-bounds` mode for the test processes: `yes` forces bounds checks everywhere (matching `Pkg.test` semantics); `auto` respects `@inbounds` annotations and reuses existing precompile caches. |
+| `check-bounds` | `yes` | `--check-bounds` mode for the test processes: `yes` forces bounds checks everywhere (matching `Pkg.test` semantics); `auto` respects `@inbounds` annotations and reuses existing precompile caches. **Note this default differs from `juliati`'s own (`auto`)** — deliberately, so CI matches `Pkg.test`. The cost is that the first run precompiles the environment into a separate cache slot. |
 | `annotations` | `true` | Emit GitHub error annotations for failed test items. |
+| `junit-path` | *(unset)* | Path to write the results as JUnit XML. Most CI test reporters consume this format; `results-path` is richer but far less portable. |
+| `coverage-lcov-path` | *(unset)* | Path to write the run's merged coverage in LCOV format, for Codecov, Coveralls and similar. Implies `coverage`. |
+| `output-mode` | *(juliati default: `issues`)* | Which captured test-item output to echo into the job log: `issues` (only failing items), `all`, or `none`. Captured output is always in the results JSON regardless. |
+| `threads` | *(Julia's default)* | Value for the test processes' `--threads`, e.g. `4`, `auto`, `2,1`. |
+| `gc-between-testitems` | *(juliati default)* | `true`/`false` to force a full GC between test items. Unset leaves the default, which is on when more than one test process is used. |
+| `memory-threshold` | *(off)* | Recycle a test process once system memory use exceeds this fraction (0–1). Experimental. |
+| `schedule` | *(juliati default: `duration`)* | How test items are distributed over processes: `duration` orders by measured duration, past failures and warm setups; `contiguous` restores the previous chunk-by-position behaviour. Set to `contiguous` to rule the scheduler out when diagnosing a run. |
 
 ## Outputs
 
 | Output | Description |
 | --- | --- |
 | `results-path` | Path of the results JSON that was written (empty if none was written). |
+| `junit-path` | Path of the JUnit XML that was written (empty if none was written). |
 
 ## Requirements and caching
 
