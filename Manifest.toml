@@ -101,9 +101,9 @@ version = "3.0.1"
 
 [[deps.JuliaFormatter]]
 deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML", "Test"]
-git-tree-sha1 = "3c899577176e224720236a3d9b735403147c2857"
+git-tree-sha1 = "ecfce3283393b43541f8a4cf95fc1af3a274c4bc"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "2.12.4"
+version = "2.12.5"
 
 [[deps.JuliaSyntax]]
 git-tree-sha1 = "0d4b3dab95018bcf3925204475693d9f09dc45b8"
@@ -280,7 +280,7 @@ version = "1.11.0"
 
 [[deps.TestItemApp]]
 deps = ["JSON", "JuliaWorkspaces", "Logging", "PrecompileTools", "ProgressMeter", "TestItemControllers", "UUIDs"]
-git-tree-sha1 = "cc2880345d54b27afca0323fca909824b9c5d0e6"
+git-tree-sha1 = "fe8bd8f9db8804a9b5efef40c9eb3f6b81e65ce7"
 repo-rev = "main"
 repo-url = "https://github.com/julia-testitems/TestItemApp.jl.git"
 uuid = "3c47ebe9-cd35-4ffd-8ef3-ab920089c471"
@@ -288,9 +288,9 @@ version = "0.1.0"
 
 [[deps.TestItemControllers]]
 deps = ["Dates", "Mmap", "PrecompileTools", "Sockets", "UUIDs", "Unicode"]
-git-tree-sha1 = "6282cd76ba86cee421c08b70eb93e8f69b525973"
+git-tree-sha1 = "b30a8e26acb3143b8ad178543ffc63ac105e43e7"
 uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
-version = "1.5.0"
+version = "1.6.0"
 
 [[deps.TestItemDetection]]
 deps = ["JuliaSyntax"]
