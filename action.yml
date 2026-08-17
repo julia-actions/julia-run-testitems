@@ -55,10 +55,56 @@ inputs:
     description: 'Emit GitHub error annotations for failed test items'
     required: false
     default: 'true'
+  junit-path:
+    description: >-
+      Path to write the test-run results as JUnit XML. Most CI test reporters consume this
+      format; the results JSON written by results-path is richer, but far less portable.
+    required: false
+    default: ''
+  coverage-lcov-path:
+    description: >-
+      Path to write the merged coverage of the run in LCOV format, for Codecov, Coveralls
+      and similar. Implies coverage.
+    required: false
+    default: ''
+  output-mode:
+    description: >-
+      Which captured test-item output to echo into the job log: 'issues' (default, only
+      failing items), 'all', or 'none'. Captured output is always present in the results
+      JSON regardless of this setting.
+    required: false
+    default: ''
+  threads:
+    description: "Value for the test processes' --threads (e.g. '4', 'auto', '2,1')"
+    required: false
+    default: ''
+  gc-between-testitems:
+    description: >-
+      Run a full GC between test items: 'true', 'false', or empty for the juliati default
+      (on when more than one test process is used).
+    required: false
+    default: ''
+  memory-threshold:
+    description: >-
+      Recycle a test process once system memory use exceeds this fraction (0-1). Off by
+      default. Experimental.
+    required: false
+    default: ''
+  schedule:
+    description: >-
+      How test items are distributed over test processes: 'duration' (the juliati default,
+      ordering by measured duration, past failures and warm setups) or 'contiguous' for the
+      previous chunk-by-position behaviour. Set this to 'contiguous' to rule the scheduler
+      out when diagnosing a run.
+    required: false
+    default: ''
 outputs:
   results-path:
     description: 'Path of the results JSON that was written (empty if none was written)'
     value: ${{ steps.run.outputs.results-path }}
+  junit-path:
+    description: 'Path of the JUnit XML that was written (empty if none was written)'
+    value: ${{ steps.run.outputs.junit-path }}
 runs:
   using: "composite"
   steps:
@@ -87,12 +133,22 @@ runs:
         if ($env:TEST_PROFILE_NAME) { $jargs += @('--profile-name', $env:TEST_PROFILE_NAME) }
         if ($resultsFile) { $jargs += @('--results-json', $resultsFile) }
         if ($env:TEST_COVERAGE -eq 'true') { $jargs += '--coverage' }
+        if ($env:TEST_COVERAGE_LCOV) { $jargs += @('--coverage-lcov', $env:TEST_COVERAGE_LCOV) }
+        if ($env:TEST_JUNIT_PATH) { $jargs += @('--junit-xml', $env:TEST_JUNIT_PATH) }
+        if ($env:TEST_OUTPUT_MODE) { $jargs += @('--output', $env:TEST_OUTPUT_MODE) }
         if ($env:TEST_MAX_WORKERS) { $jargs += @('--max-workers', $env:TEST_MAX_WORKERS) }
+        if ($env:TEST_THREADS) { $jargs += @('--threads', $env:TEST_THREADS) }
+        if ($env:TEST_MEMORY_THRESHOLD) { $jargs += @('--memory-threshold', $env:TEST_MEMORY_THRESHOLD) }
+        if ($env:TEST_SCHEDULE) { $jargs += @('--schedule', $env:TEST_SCHEDULE) }
+        # Tri-state: unset leaves the juliati default (on when more than one test process).
+        if ($env:TEST_GC_BETWEEN -eq 'true') { $jargs += '--gc-between-testitems' }
+        elseif ($env:TEST_GC_BETWEEN -eq 'false') { $jargs += '--no-gc-between-testitems' }
         if ($env:TEST_CHECK_BOUNDS) { $jargs += @('--check-bounds', $env:TEST_CHECK_BOUNDS) }
         if ($env:RUNNER_DEBUG -eq '1') { $jargs += '--debug' }
         julia +release --project=$env:GITHUB_ACTION_PATH -m TestItemApp @jargs
         "exit-code=$LASTEXITCODE" >> $env:GITHUB_OUTPUT
         "results-path=$resultsFile" >> $env:GITHUB_OUTPUT
+        "junit-path=$env:TEST_JUNIT_PATH" >> $env:GITHUB_OUTPUT
       shell: pwsh
       env:
         TEST_PATH: ${{ inputs.test-path }}
@@ -102,7 +158,14 @@ runs:
         TEST_TIMEOUT: ${{ inputs.testitem-timeout }}
         TEST_PROFILE_NAME: ${{ inputs.profile-name }}
         TEST_COVERAGE: ${{ inputs.coverage }}
+        TEST_COVERAGE_LCOV: ${{ inputs.coverage-lcov-path }}
+        TEST_JUNIT_PATH: ${{ inputs.junit-path }}
+        TEST_OUTPUT_MODE: ${{ inputs.output-mode }}
         TEST_MAX_WORKERS: ${{ inputs.max-workers }}
+        TEST_THREADS: ${{ inputs.threads }}
+        TEST_GC_BETWEEN: ${{ inputs.gc-between-testitems }}
+        TEST_MEMORY_THRESHOLD: ${{ inputs.memory-threshold }}
+        TEST_SCHEDULE: ${{ inputs.schedule }}
         TEST_CHECK_BOUNDS: ${{ inputs.check-bounds }}
         RESULTS_PATH: ${{ inputs.results-path }}
         ANNOTATIONS: ${{ inputs.annotations }}
