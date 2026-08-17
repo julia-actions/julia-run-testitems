@@ -2,6 +2,8 @@
 TestItemApp = "3c47ebe9-cd35-4ffd-8ef3-ab920089c471"
 TestItemControllers = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
 
+[compat]
+TestItemControllers = "1.5"
+
 [sources]
-TestItemApp = {url = "https://github.com/julia-vscode/TestItemApp.jl.git", rev = "main"}
-TestItemControllers = {url = "https://github.com/julia-vscode/TestItemControllers.jl", rev = "main"}
+TestItemApp = {url = "https://github.com/julia-testitems/TestItemApp.jl.git", rev = "main"}
