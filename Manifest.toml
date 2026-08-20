@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "4fee557c23d6a078d225a62d6b4ef14892c46d7a"
+project_hash = "1911159e8ae76dcba7475780afeadc9d1264641a"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -288,11 +288,11 @@ version = "0.1.0"
 
 [[deps.TestItemControllers]]
 deps = ["Dates", "Mmap", "PrecompileTools", "Sockets", "UUIDs", "Unicode"]
-git-tree-sha1 = "74873145b815b9130462b698597ce8a120062d09"
+git-tree-sha1 = "ab33298b5cad0cca57fac000ad9dbe77433405b9"
 repo-rev = "main"
 repo-url = "https://github.com/julia-testitems/TestItemControllers.jl.git"
 uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
-version = "1.6.1-DEV"
+version = "1.7.1-DEV"
 
 [[deps.TestItemDetection]]
 deps = ["JuliaSyntax"]
