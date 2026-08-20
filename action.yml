@@ -90,6 +90,14 @@ inputs:
       default. Experimental.
     required: false
     default: ''
+  test-log-level:
+    description: >-
+      Minimum log level for the code under test -- your package and the test item bodies:
+      'debug', 'info' (the juliati default), 'warn' or 'error'. This is a separate axis from
+      GitHub's debug-logging checkbox, which controls the test infrastructure's own
+      diagnostics; see the README. Empty leaves the juliati default.
+    required: false
+    default: ''
   schedule:
     description: >-
       How test items are distributed over test processes: 'duration' (the juliati default,
@@ -140,10 +148,14 @@ runs:
         if ($env:TEST_THREADS) { $jargs += @('--threads', $env:TEST_THREADS) }
         if ($env:TEST_MEMORY_THRESHOLD) { $jargs += @('--memory-threshold', $env:TEST_MEMORY_THRESHOLD) }
         if ($env:TEST_SCHEDULE) { $jargs += @('--schedule', $env:TEST_SCHEDULE) }
+        if ($env:TEST_LOG_LEVEL) { $jargs += @('--log-level', $env:TEST_LOG_LEVEL) }
         # Tri-state: unset leaves the juliati default (on when more than one test process).
         if ($env:TEST_GC_BETWEEN -eq 'true') { $jargs += '--gc-between-testitems' }
         elseif ($env:TEST_GC_BETWEEN -eq 'false') { $jargs += '--no-gc-between-testitems' }
         if ($env:TEST_CHECK_BOUNDS) { $jargs += @('--check-bounds', $env:TEST_CHECK_BOUNDS) }
+        # GitHub's debug-logging checkbox turns on the *infrastructure's* diagnostics only,
+        # matching what ACTIONS_STEP_DEBUG is documented to mean. Raising the log level of the
+        # code under test is the separate, explicit `test-log-level` input above.
         if ($env:RUNNER_DEBUG -eq '1') { $jargs += '--debug' }
         julia +release --project=$env:GITHUB_ACTION_PATH -m TestItemApp @jargs
         "exit-code=$LASTEXITCODE" >> $env:GITHUB_OUTPUT
@@ -166,6 +178,7 @@ runs:
         TEST_GC_BETWEEN: ${{ inputs.gc-between-testitems }}
         TEST_MEMORY_THRESHOLD: ${{ inputs.memory-threshold }}
         TEST_SCHEDULE: ${{ inputs.schedule }}
+        TEST_LOG_LEVEL: ${{ inputs.test-log-level }}
         TEST_CHECK_BOUNDS: ${{ inputs.check-bounds }}
         RESULTS_PATH: ${{ inputs.results-path }}
         ANNOTATIONS: ${{ inputs.annotations }}
