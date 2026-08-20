@@ -44,7 +44,27 @@ All inputs are optional.
 | `threads` | *(Julia's default)* | Value for the test processes' `--threads`, e.g. `4`, `auto`, `2,1`. |
 | `gc-between-testitems` | *(juliati default)* | `true`/`false` to force a full GC between test items. Unset leaves the default, which is on when more than one test process is used. |
 | `memory-threshold` | *(off)* | Recycle a test process once system memory use exceeds this fraction (0–1). Experimental. |
+| `test-log-level` | *(juliati default: `info`)* | Minimum log level for **the code under test** — your package and the test item bodies: `debug`, `info`, `warn` or `error`. Separate from GitHub's debug-logging checkbox; see [Debug logging](#debug-logging). |
 | `schedule` | *(juliati default: `duration`)* | How test items are distributed over processes: `duration` orders by measured duration, past failures and warm setups; `contiguous` restores the previous chunk-by-position behaviour. Set to `contiguous` to rule the scheduler out when diagnosing a run. |
+
+## Debug logging
+
+Two different things get called "debug logging" for a test run, and this action keeps them apart:
+
+| I want to see… | Use | What it does |
+| --- | --- | --- |
+| my package's own `@debug` output | `test-log-level: debug` | Raises the log level applied around each test item, so `@debug` from your package and from the test item bodies reaches the job log. Needs no module name. |
+| why the test run itself misbehaved | GitHub's **Enable debug logging** checkbox | Sets `ACTIONS_STEP_DEBUG`, which this action forwards to `juliati --debug`: process launches, scheduling and timeouts from TestItemApp/TestItemControllers. |
+
+The checkbox deliberately does **not** raise the level of the code under test. `ACTIONS_STEP_DEBUG` is documented as being about diagnostics from the tooling, and a debug-level run of a large suite would bury the very infrastructure diagnostics the checkbox was ticked to reveal.
+
+```yaml
+- uses: julia-actions/julia-run-testitems@v2
+  with:
+    test-log-level: debug
+```
+
+If you want debug output from specific modules only, `JULIA_DEBUG` still works — pass it through with `env: '{"JULIA_DEBUG": "MyPkg"}'`, which reaches the test processes on every platform.
 
 ## Outputs
 
