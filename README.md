@@ -33,7 +33,7 @@ All inputs are optional.
 | `env` | *(unset)* | Environment variables for the test processes, as a **JSON object string**, e.g. `{"FOO": "bar"}` — not `KEY=VALUE` lines. |
 | `filter` | *(unset)* | A Julia expression over `name`, `tags`, `filename` and `package_name`; only test items for which it evaluates to `true` are run. Example: `:ci in tags && package_name == "MyPkg"`. |
 | `profile-name` | `Default` | Profile name recorded in the results JSON. |
-| `testitem-timeout` | `1200` | Per-test-item timeout in seconds. |
+| `testitem-timeout` | *(none)* | Per-test-item timeout in seconds. Unset by default, since a test item can legitimately take arbitrarily long and a timeout that fires errors the item and kills its test process. Worth setting when you want a hang diagnosed: on a timeout the worker dumps task backtraces and a CPU profile into the item's output, which you get no other way. Without one, a hung item runs until the job hits its own `timeout-minutes` (GitHub default: 360) and nothing identifies which item hung. |
 | `coverage` | `false` | Run the test processes in coverage mode. |
 | `max-workers` | *(juliati default)* | Maximum number of parallel test processes. |
 | `check-bounds` | `yes` | `--check-bounds` mode for the test processes: `yes` forces bounds checks everywhere (matching `Pkg.test` semantics); `auto` respects `@inbounds` annotations and reuses existing precompile caches. **Note this default differs from `juliati`'s own (`auto`)** — deliberately, so CI matches `Pkg.test`. The cost is that the first run precompiles the environment into a separate cache slot. |
