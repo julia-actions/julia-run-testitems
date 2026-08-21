@@ -33,9 +33,9 @@ inputs:
     required: false
     default: ''
   testitem-timeout:
-    description: 'Per-test-item timeout in seconds'
+    description: 'Per-test-item timeout in seconds. Unset (the default) means no timeout.'
     required: false
-    default: '1200'
+    default: ''
   coverage:
     description: 'Run the test processes in coverage mode'
     required: false
