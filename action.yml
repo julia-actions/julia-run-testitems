@@ -46,11 +46,12 @@ inputs:
     default: ''
   check-bounds:
     description: >-
-      --check-bounds mode for the test processes: 'yes' (default) forces bounds checks
-      everywhere, matching Pkg.test semantics; 'auto' respects @inbounds annotations
-      and reuses existing precompile caches.
+      --check-bounds mode for the test processes: 'auto' (default) respects @inbounds
+      annotations and reuses the precompile caches the depot already holds; 'yes' forces
+      bounds checks everywhere, matching Pkg.test semantics, at the cost of recompiling the
+      whole dependency tree into a separate cache on every run.
     required: false
-    default: 'yes'
+    default: 'auto'
   annotations:
     description: 'Emit GitHub error annotations for failed test items'
     required: false
