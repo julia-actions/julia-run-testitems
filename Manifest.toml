@@ -95,9 +95,9 @@ version = "0.21.4"
 
 [[deps.JSONRPC]]
 deps = ["CancellationTokens", "JSON", "Sockets", "UUIDs"]
-git-tree-sha1 = "ff77126d8a7ecf424608c4bf93e978006af76972"
+git-tree-sha1 = "e847ea41d2b487d834d440b32d656fbfb77d3316"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "3.0.3"
+version = "3.0.4"
 
 [[deps.JuliaFormatter]]
 deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML", "Test"]
@@ -279,8 +279,8 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
 [[deps.TestItemApp]]
-deps = ["JSON", "JuliaWorkspaces", "Logging", "PrecompileTools", "ProgressMeter", "TestItemControllers", "UUIDs"]
-git-tree-sha1 = "260fc712e0c1133e6b63bb24015930ed2f16f10d"
+deps = ["JSON", "Logging", "PrecompileTools", "ProgressMeter", "TestItemRuns"]
+git-tree-sha1 = "28adc24ad358514ce104da5a5ec85657b29ae185"
 repo-rev = "main"
 repo-url = "https://github.com/julia-testitems/TestItemApp.jl.git"
 uuid = "3c47ebe9-cd35-4ffd-8ef3-ab920089c471"
@@ -297,6 +297,12 @@ deps = ["JuliaSyntax"]
 git-tree-sha1 = "535613153174bb58a14c53e46dde64f47ca98f2d"
 uuid = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
 version = "1.2.0"
+
+[[deps.TestItemRuns]]
+deps = ["Dates", "JuliaWorkspaces", "Logging", "TestItemControllers", "UUIDs"]
+git-tree-sha1 = "db6aa6f10aaf1d902dee624e6410826a4e04104b"
+uuid = "deb593ba-a4a0-4ed4-a5af-fab4ec5af80e"
+version = "1.1.0"
 
 [[deps.Tokenize]]
 git-tree-sha1 = "468b4685af4abe0e9fd4d7bf495a6554a6276e75"
