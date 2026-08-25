@@ -47,11 +47,12 @@ inputs:
     default: ''
   run-stall:
     description: >-
-      How long the whole run may go with no test process busy and no message about it
-      before its remaining test items are errored (default 300 seconds; "none" disables).
-      This measures only time in which nothing is working on the run — activating,
-      revising and running a test item all count as progress — so it bounds a run whose
-      workers died without reporting it, not a slow one.
+      Opt-in: error the run's remaining test items after this many seconds with no test
+      process busy and no message about it. Unset (the default) never fails an idle run —
+      it is only warned about in the log. Only time in which nothing is working on the run
+      counts — activating, revising and running a test item all count as progress — so
+      this bounds a run whose workers died without reporting it, not a slow one. Worth
+      setting in CI, where a hung run otherwise burns the whole job timeout.
     required: false
     default: ''
   coverage:
