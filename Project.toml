@@ -1,5 +1,6 @@
 [deps]
 TestItemApp = "3c47ebe9-cd35-4ffd-8ef3-ab920089c471"
+TestItemRuns = "deb593ba-a4a0-4ed4-a5af-fab4ec5af80e"
 
 [sources]
-TestItemApp = {rev = "main", url = "https://github.com/julia-testitems/TestItemApp.jl.git"}
+TestItemApp = {rev = "fix/run-stall-plumbing", url = "https://github.com/julia-testitems/TestItemApp.jl.git"}

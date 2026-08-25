@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "7cb7e44ea61e1860cead723943355b24a5319c36"
+project_hash = "9e9e6473a76ad9a99fabe9c26d4da709d71515da"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -280,11 +280,11 @@ version = "1.11.0"
 
 [[deps.TestItemApp]]
 deps = ["JSON", "Logging", "PrecompileTools", "ProgressMeter", "TestItemRuns"]
-git-tree-sha1 = "530e556e4d5626f6b7f482505aa8757dad01086b"
-repo-rev = "main"
+git-tree-sha1 = "d325042c37019cfbd0b2daf3dd1bf929f7210f1b"
+repo-rev = "fix/run-stall-plumbing"
 repo-url = "https://github.com/julia-testitems/TestItemApp.jl.git"
 uuid = "3c47ebe9-cd35-4ffd-8ef3-ab920089c471"
-version = "1.1.0-DEV"
+version = "1.1.1-DEV"
 
 [[deps.TestItemControllers]]
 deps = ["Dates", "Mmap", "PrecompileTools", "Sockets", "UUIDs", "Unicode"]
@@ -300,9 +300,11 @@ version = "1.2.0"
 
 [[deps.TestItemRuns]]
 deps = ["Dates", "JuliaWorkspaces", "Logging", "TestItemControllers", "UUIDs"]
-git-tree-sha1 = "9e3c1e534fdefc3f2cfd0af6c471afb4bc1865be"
+git-tree-sha1 = "535aa5a0827c13360b39426bc04a3d11c56b87f6"
+repo-rev = "main"
+repo-url = "https://github.com/julia-testitems/TestItemRuns.jl.git"
 uuid = "deb593ba-a4a0-4ed4-a5af-fab4ec5af80e"
-version = "1.2.0"
+version = "1.3.1-DEV"
 
 [[deps.Tokenize]]
 git-tree-sha1 = "468b4685af4abe0e9fd4d7bf495a6554a6276e75"
