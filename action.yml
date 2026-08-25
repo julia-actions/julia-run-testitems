@@ -45,6 +45,15 @@ inputs:
       fire before an item has started.
     required: false
     default: ''
+  run-stall:
+    description: >-
+      How long the whole run may go with no test process busy and no message about it
+      before its remaining test items are errored (default 300 seconds; "none" disables).
+      This measures only time in which nothing is working on the run — activating,
+      revising and running a test item all count as progress — so it bounds a run whose
+      workers died without reporting it, not a slow one.
+    required: false
+    default: ''
   coverage:
     description: 'Run the test processes in coverage mode'
     required: false
@@ -147,6 +156,7 @@ runs:
         $jargs += @('--juliaup-channel', $channel)
         if ($env:TEST_TIMEOUT) { $jargs += @('--timeout', $env:TEST_TIMEOUT) }
         if ($env:TEST_ACTIVATION_TIMEOUT) { $jargs += @('--activation-timeout', $env:TEST_ACTIVATION_TIMEOUT) }
+        if ($env:TEST_RUN_STALL) { $jargs += @('--run-stall', $env:TEST_RUN_STALL) }
         if ($env:TEST_ENV) { $jargs += @('--env-json', $env:TEST_ENV) }
         if ($env:TEST_FILTER) { $jargs += @('--filter', $env:TEST_FILTER) }
         if ($env:TEST_PROFILE_NAME) { $jargs += @('--profile-name', $env:TEST_PROFILE_NAME) }
@@ -180,6 +190,7 @@ runs:
         TEST_FILTER: ${{ inputs.filter }}
         TEST_TIMEOUT: ${{ inputs.testitem-timeout }}
         TEST_ACTIVATION_TIMEOUT: ${{ inputs.activation-timeout }}
+        TEST_RUN_STALL: ${{ inputs.run-stall }}
         TEST_PROFILE_NAME: ${{ inputs.profile-name }}
         TEST_COVERAGE: ${{ inputs.coverage }}
         TEST_COVERAGE_LCOV: ${{ inputs.coverage-lcov-path }}
