@@ -264,7 +264,7 @@ runs:
         "cpu-target=$cpuTarget" >> $env:GITHUB_OUTPUT
         "test-cpu-target=$testCpuTarget" >> $env:GITHUB_OUTPUT
     - name: Restore the toolkit depot
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         # Deliberately no `restore-keys`. A prefix match would load a depot precompiled by
         # a different Julia, which is the one case this key exists to rule out: a miss that
