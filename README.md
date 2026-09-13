@@ -91,6 +91,14 @@ and caches it itself. The key is the runner OS and architecture, the version
 `release` currently resolves to, and a hash of that manifest — no matrix value
 enters it, so a single entry serves a whole matrix.
 
+The toolkit is also precompiled with `JULIA_CPU_TARGET=generic`. Julia's default,
+`native`, compiles package images for whichever machine precompiled them, while
+recording only the literal string `native` in the cache path — so a depot moved
+between two runners with different CPUs looks valid, is rejected on load, and
+recompiles. GitHub's runner fleet is mixed enough for that to happen regularly.
+A platform whose Julia does not accept `generic` gets a warning and Julia's
+default instead, and keeps the behaviour it had before.
+
 This needs no configuration, and nothing in your workflow should point at that
 depot. Before, the toolkit went into the default depot and every leg
 precompiled and cached its own copy of the same thing.
@@ -98,8 +106,10 @@ precompiled and cached its own copy of the same thing.
 ### The depot the tests use — cache it yourself
 
 The test processes use the default Julia depot (`~/.julia`), or whatever the
-job set `JULIA_DEPOT_PATH` to; the toolkit depot is not visible to them. Cache
-it with a job-level step before this action, as before:
+job set `JULIA_DEPOT_PATH` to; the toolkit depot is not visible to them. Neither
+is the toolkit's `JULIA_CPU_TARGET` — the job's own setting is restored for them,
+so the package under test is compiled exactly as it would be without this action.
+Cache the depot with a job-level step before this action, as before:
 
 ```yaml
 - uses: julia-actions/install-juliaup@v2
