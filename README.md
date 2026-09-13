@@ -91,13 +91,16 @@ and caches it itself. The key is the runner OS and architecture, the version
 `release` currently resolves to, and a hash of that manifest — no matrix value
 enters it, so a single entry serves a whole matrix.
 
-The toolkit is also precompiled with `JULIA_CPU_TARGET=generic`. Julia's default,
-`native`, compiles package images for whichever machine precompiled them, while
+The toolkit is also precompiled against a portable CPU target. Julia's default,
+`native`, compiles package images for whichever machine precompiled them while
 recording only the literal string `native` in the cache path — so a depot moved
 between two runners with different CPUs looks valid, is rejected on load, and
-recompiles. GitHub's runner fleet is mixed enough for that to happen regularly.
-A platform whose Julia does not accept `generic` gets a warning and Julia's
-default instead, and keeps the behaviour it had before.
+recompiles. GitHub's runner fleet is mixed enough for that to happen regularly
+(see [julia-actions/cache#114](https://github.com/julia-actions/cache/issues/114)).
+The target is the multi-versioned one the Julia devdocs give for a portable system
+image on x86_64, `pentium4` on 32-bit x86 and `generic` on aarch64; a platform
+whose Julia does not accept it gets a warning and Julia's default instead, keeping
+the behaviour it had before.
 
 This needs no configuration, and nothing in your workflow should point at that
 depot. Before, the toolkit went into the default depot and every leg
@@ -106,10 +109,15 @@ precompiled and cached its own copy of the same thing.
 ### The depot the tests use — cache it yourself
 
 The test processes use the default Julia depot (`~/.julia`), or whatever the
-job set `JULIA_DEPOT_PATH` to; the toolkit depot is not visible to them. Neither
-is the toolkit's `JULIA_CPU_TARGET` — the job's own setting is restored for them,
-so the package under test is compiled exactly as it would be without this action.
-Cache the depot with a job-level step before this action, as before:
+job set `JULIA_DEPOT_PATH` to; the toolkit depot is not visible to them. They get
+their own portable `JULIA_CPU_TARGET`, chosen for the architecture their
+`juliaup-channel` names rather than the runner's — on a 32-bit channel those
+differ — so the depot you cache below survives moving between runner CPUs too.
+Before Julia 1.10 that is a correctness matter and not only a speed one: package
+images arrived in 1.9, which does not check them against the host CPU and simply
+runs them. Set the `cpu-target` input to `native` to opt out, or to any target of
+your own; a job-level `JULIA_CPU_TARGET` is honoured as well. Cache the depot with
+a job-level step before this action, as before:
 
 ```yaml
 - uses: julia-actions/install-juliaup@v2
