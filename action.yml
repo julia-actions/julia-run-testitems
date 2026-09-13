@@ -162,6 +162,27 @@ runs:
         # the manifest that pins the toolkit lives in the action's own directory.
         $manifest = Join-Path $env:GITHUB_ACTION_PATH 'Manifest.toml'
         $hash = (Get-FileHash -Algorithm SHA256 $manifest).Hash.Substring(0, 16)
+        # Julia compiles package images for whichever machine precompiles them: `cpu_target`
+        # defaults to "native", and it is the literal string "native" -- not the
+        # microarchitecture it resolves to -- that goes into the cache slug. A depot built on
+        # one runner and restored onto another with a different CPU therefore has files at
+        # exactly the paths Julia looks in, holding code it then refuses, and the toolkit
+        # recompiles despite the cache hit. GitHub's fleet is mixed enough that this happened
+        # on roughly a fifth of hits. Pinning a portable target fixes it; the cost falls on
+        # juliati's own code and not on the tests, which are handed the job's setting below.
+        # This value is part of the cache slug, so bump `v=` in the cache key below if it
+        # changes -- otherwise every leg restores an entry it can no longer address.
+        $cpuTarget = 'generic'
+        # A target the platform does not support makes Julia refuse to start, which would take
+        # every leg with it, so it is probed rather than assumed. The fallback is the string
+        # Julia uses when the variable is unset, so a platform that rejects `generic` simply
+        # keeps the behaviour it has today. The outcome is fixed for a given platform and Julia,
+        # so legs sharing a key never disagree about it and it need not appear in the key.
+        julia +release --cpu-target=$cpuTarget -e 'exit(0)' 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "::warning::Julia here does not support --cpu-target=$cpuTarget; leaving its default, so this leg's toolkit cache is not portable between runner CPUs."
+            $cpuTarget = 'native'
+        }
         # Forward slashes throughout: `actions/cache` matches the paths below as globs, and
         # a Windows backslash is an escape character to the glob parser. Julia takes either.
         $depot = (Join-Path $env:RUNNER_TEMP 'julia-toolkit-depot') -replace '\\', '/'
@@ -172,13 +193,21 @@ runs:
         # in the environment, so this is the only place the job's own choice is still
         # visible. The test processes are put back on it further down.
         "job-depot=$env:JULIA_DEPOT_PATH" >> $env:GITHUB_OUTPUT
+        "job-cpu-target=$env:JULIA_CPU_TARGET" >> $env:GITHUB_OUTPUT
+        "cpu-target=$cpuTarget" >> $env:GITHUB_OUTPUT
     - name: Restore the toolkit depot
       uses: actions/cache@v4
       with:
         # Deliberately no `restore-keys`. A prefix match would load a depot precompiled by
         # a different Julia, which is the one case this key exists to rule out: a miss that
         # rebuilds from scratch is merely slow, a near-miss is wrong.
-        key: julia-toolkit;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ steps.toolkit.outputs.version }};manifest=${{ steps.toolkit.outputs.hash }}
+        # `v=1` is a hand-turned version for the contents of this entry, and it exists because
+        # an exact hit suppresses the save: an entry that has become unusable is otherwise
+        # restored, rejected, rebuilt and then *not* replaced, on every leg, forever. Bump it
+        # for any change that makes existing entries unusable rather than merely stale -- a
+        # different `$cpuTarget`, which is part of the cache slug Julia computes; a different
+        # set of cached paths below. The other fields cover the cases that rotate on their own.
+        key: julia-toolkit;v=1;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ steps.toolkit.outputs.version }};manifest=${{ steps.toolkit.outputs.hash }}
         # `scratchspaces` and `logs` are left out on purpose. Scratch contents belong to the
         # workspace under test, and this entry is written once and read forever after, so
         # anything workspace-shaped in it would be frozen for every later user of the key.
@@ -193,6 +222,7 @@ runs:
       env:
         JULIA_PROJECT: ${{ github.action_path }}
         JULIA_DEPOT_PATH: ${{ steps.toolkit.outputs.depot }}
+        JULIA_CPU_TARGET: ${{ steps.toolkit.outputs.cpu-target }}
     - name: Run test items
       id: run
       run: |
@@ -207,16 +237,24 @@ runs:
         if ($env:TEST_TIMEOUT) { $jargs += @('--timeout', $env:TEST_TIMEOUT) }
         if ($env:TEST_ACTIVATION_TIMEOUT) { $jargs += @('--activation-timeout', $env:TEST_ACTIVATION_TIMEOUT) }
         if ($env:TEST_RUN_STALL) { $jargs += @('--run-stall', $env:TEST_RUN_STALL) }
-        # A test process is launched with a copy of this process's environment, so without
-        # this it would inherit the toolkit depot and precompile the package under test
-        # into an entry whose whole point is to be matrix-independent. Put it back on the
-        # depot the job asked for -- or, when the job asked for nothing, on Julia's default
-        # `~/.julia`, which is what `julia-actions/cache` caches per leg. A null value in
-        # `--env-json` removes the variable rather than setting it empty; `ConvertTo-Json`
-        # is what escapes a Windows path into a legal JSON string. This goes before the
-        # caller's own `--env-json` so an explicit setting there still wins.
-        $depotForTests = @{ 'JULIA_DEPOT_PATH' = if ($env:JOB_DEPOT) { $env:JOB_DEPOT } else { $null } }
-        $jargs += @('--env-json', ($depotForTests | ConvertTo-Json -Compress))
+        # A test process is launched with a copy of this process's environment, so both of the
+        # variables set for the toolkit have to be taken back off it again. `JULIA_DEPOT_PATH`
+        # would otherwise have it precompile the package under test into an entry whose whole
+        # point is to be matrix-independent; `JULIA_CPU_TARGET` would otherwise change the
+        # slug the test environment precompiles into -- discarding the per-leg cache the job
+        # just restored -- and compile the package under test for a baseline CPU, which is not
+        # this action's call to make about somebody else's tests.
+        #
+        # Each goes back to what the job asked for, or is removed outright when the job asked
+        # for nothing: a null in `--env-json` deletes the variable rather than setting it
+        # empty, which is what restores Julia's own defaults. `ConvertTo-Json` is also what
+        # escapes a Windows path into a legal JSON string. This is emitted before the caller's
+        # own `--env-json` so an explicit setting there still wins.
+        $envForTests = @{
+            'JULIA_DEPOT_PATH' = if ($env:JOB_DEPOT) { $env:JOB_DEPOT } else { $null }
+            'JULIA_CPU_TARGET' = if ($env:JOB_CPU_TARGET) { $env:JOB_CPU_TARGET } else { $null }
+        }
+        $jargs += @('--env-json', ($envForTests | ConvertTo-Json -Compress))
         if ($env:TEST_ENV) { $jargs += @('--env-json', $env:TEST_ENV) }
         if ($env:TEST_FILTER) { $jargs += @('--filter', $env:TEST_FILTER) }
         if ($env:TEST_PROFILE_NAME) { $jargs += @('--profile-name', $env:TEST_PROFILE_NAME) }
@@ -244,8 +282,12 @@ runs:
         "junit-path=$env:TEST_JUNIT_PATH" >> $env:GITHUB_OUTPUT
       shell: pwsh
       env:
+        # Also set when the toolkit is only being loaded, not built: the slug is computed
+        # again at load time, so leaving it out here would miss every cache it just restored.
         JULIA_DEPOT_PATH: ${{ steps.toolkit.outputs.depot }}
+        JULIA_CPU_TARGET: ${{ steps.toolkit.outputs.cpu-target }}
         JOB_DEPOT: ${{ steps.toolkit.outputs.job-depot }}
+        JOB_CPU_TARGET: ${{ steps.toolkit.outputs.job-cpu-target }}
         TEST_PATH: ${{ inputs.test-path }}
         TEST_JULIAUP_CHANNEL: ${{ inputs.juliaup-channel }}
         TEST_ENV: ${{ inputs.env }}
