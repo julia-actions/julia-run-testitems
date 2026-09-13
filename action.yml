@@ -63,6 +63,16 @@ inputs:
     description: 'Maximum number of parallel test processes (default: the juliati default)'
     required: false
     default: ''
+  cpu-target:
+    description: >-
+      `JULIA_CPU_TARGET` for the test processes. Empty (the default) picks a portable
+      multi-versioned target for the platform, so precompile caches survive being moved
+      between CI machines with different CPUs -- Julia's own default, `native`, does not,
+      and a cache built on one CPU is refused on another (or, before Julia 1.10, executed
+      anyway). Set `native` to opt out, or any target string to choose your own. A
+      job-level `JULIA_CPU_TARGET` is honoured when this is empty.
+    required: false
+    default: ''
   check-bounds:
     description: >-
       --check-bounds mode for the test processes: 'auto' (default) respects @inbounds
@@ -153,6 +163,9 @@ runs:
     - name: Resolve the toolkit cache key
       id: toolkit
       shell: pwsh
+      env:
+        CPU_TARGET_INPUT: ${{ inputs.cpu-target }}
+        TEST_JULIAUP_CHANNEL: ${{ inputs.juliaup-channel }}
       run: |
         # Precompile output belongs to one exact Julia build, so the version `release`
         # currently resolves to has to be part of the key. Without it, a new Julia release
@@ -166,22 +179,77 @@ runs:
         # defaults to "native", and it is the literal string "native" -- not the
         # microarchitecture it resolves to -- that goes into the cache slug. A depot built on
         # one runner and restored onto another with a different CPU therefore has files at
-        # exactly the paths Julia looks in, holding code it then refuses, and the toolkit
+        # exactly the paths Julia looks in, holding code it then refuses, and everything
         # recompiles despite the cache hit. GitHub's fleet is mixed enough that this happened
-        # on roughly a fifth of hits. Pinning a portable target fixes it; the cost falls on
-        # juliati's own code and not on the tests, which are handed the job's setting below.
-        # This value is part of the cache slug, so bump `v=` in the cache key below if it
-        # changes -- otherwise every leg restores an entry it can no longer address.
-        $cpuTarget = 'generic'
-        # A target the platform does not support makes Julia refuse to start, which would take
-        # every leg with it, so it is probed rather than assumed. The fallback is the string
-        # Julia uses when the variable is unset, so a platform that rejects `generic` simply
-        # keeps the behaviour it has today. The outcome is fixed for a given platform and Julia,
-        # so legs sharing a key never disagree about it and it need not appear in the key.
-        julia +release --cpu-target=$cpuTarget -e 'exit(0)' 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "::warning::Julia here does not support --cpu-target=$cpuTarget; leaving its default, so this leg's toolkit cache is not portable between runner CPUs."
+        # on roughly a fifth of hits here, and julia-actions/cache#114 traced the same thing
+        # to `ubuntu-latest` alternating between Intel and AMD. Before Julia 1.10 it is worse
+        # than waste: package images arrived in 1.9, which does not check them against the
+        # host at all and simply runs them, so a mismatch there is an illegal instruction.
+        # These are the multi-versioned targets the Julia devdocs give for a portable system
+        # image, and the ones julia-actions/cache#114 recommends for exactly this problem.
+        # `sandybridge` as the floor keeps the x86_64 one valid on the oldest Julia any
+        # matrix here runs.
+        function Resolve-PortableCpuTarget([string] $arch) {
+            switch -Regex ($arch) {
+                '^(X64|x64|x86_64)$' { return 'generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)' }
+                '^(X86|x86|i686)$'   { return 'pentium4' }
+                '^(ARM64|aarch64)$'  { return 'generic' }
+                default              { return '' }
+            }
+        }
+        # A target the platform does not support makes Julia refuse to start, which would
+        # take every leg with it, so each is probed rather than assumed. `--cpu-target`
+        # rejects a multi-versioned string outright unless a sysimage is being written
+        # ("More than one command line CPU targets specified without a `--output-` flag"),
+        # so each variant's CPU name is checked on its own; the feature flags and the
+        # `clone_all`/`base(1)` directives around them are multi-versioning syntax rather
+        # than anything platform-dependent. The environment variable cannot be probed
+        # directly -- Julia accepts any value for it at startup and only fails later, inside
+        # the precompilation worker that actually reads it.
+        function Test-CpuTarget([string] $channel, [string] $target) {
+            if (-not $target) { return $false }
+            foreach ($variant in ($target -split ';')) {
+                $name = ($variant -split ',')[0]
+                julia "+$channel" "--cpu-target=$name" -e 'exit(0)' 2>&1 | Out-Null
+                if ($LASTEXITCODE -ne 0) { return $false }
+            }
+            return $true
+        }
+        # The toolkit always runs `julia +release` on the runner itself, so its target follows
+        # the runner's architecture. This value is part of the cache slug, so bump `v=` in the
+        # cache key below if it changes -- otherwise every leg restores an entry it can no
+        # longer address. Falling back to the string Julia uses when the variable is unset
+        # leaves a platform that rejects the target exactly as it is today; the outcome is
+        # fixed for a given platform and Julia, so legs sharing a key never disagree about it
+        # and it need not appear in the key itself.
+        $cpuTarget = Resolve-PortableCpuTarget $env:RUNNER_ARCH
+        if (-not (Test-CpuTarget 'release' $cpuTarget)) {
+            if ($cpuTarget) {
+                Write-Host "::warning::Julia here does not support --cpu-target=$cpuTarget; leaving its default, so this leg's toolkit cache is not portable between runner CPUs."
+            }
             $cpuTarget = 'native'
+        }
+        # The test processes are a separate question: they run the matrix's Julia rather than
+        # `release`, and on a 32-bit channel that is a 32-bit Julia even though the runner
+        # still reports X64 -- so their architecture comes from the channel when it names one.
+        # An explicit `cpu-target`, or a job-level `JULIA_CPU_TARGET`, is taken at its word
+        # and not probed: asking for a target Julia rejects should fail loudly.
+        $testChannel = if ($env:TEST_JULIAUP_CHANNEL) { $env:TEST_JULIAUP_CHANNEL } else { 'release' }
+        $testArch = if ($testChannel -match '~(.+)$') { $Matches[1] } else { $env:RUNNER_ARCH }
+        if ($env:CPU_TARGET_INPUT) {
+            $testCpuTarget = $env:CPU_TARGET_INPUT
+        } elseif ($env:JULIA_CPU_TARGET) {
+            $testCpuTarget = $env:JULIA_CPU_TARGET
+        } else {
+            $testCpuTarget = Resolve-PortableCpuTarget $testArch
+            if (-not (Test-CpuTarget $testChannel $testCpuTarget)) {
+                if ($testCpuTarget) {
+                    Write-Host "::warning::Julia $testChannel does not support --cpu-target=$testCpuTarget; leaving its default, so this leg's depot cache is not portable between runner CPUs."
+                }
+                # Empty removes the variable for the test processes further down, which is
+                # Julia's default and what they did before this action set anything.
+                $testCpuTarget = ''
+            }
         }
         # Forward slashes throughout: `actions/cache` matches the paths below as globs, and
         # a Windows backslash is an escape character to the glob parser. Julia takes either.
@@ -193,8 +261,8 @@ runs:
         # in the environment, so this is the only place the job's own choice is still
         # visible. The test processes are put back on it further down.
         "job-depot=$env:JULIA_DEPOT_PATH" >> $env:GITHUB_OUTPUT
-        "job-cpu-target=$env:JULIA_CPU_TARGET" >> $env:GITHUB_OUTPUT
         "cpu-target=$cpuTarget" >> $env:GITHUB_OUTPUT
+        "test-cpu-target=$testCpuTarget" >> $env:GITHUB_OUTPUT
     - name: Restore the toolkit depot
       uses: actions/cache@v4
       with:
@@ -207,7 +275,7 @@ runs:
         # for any change that makes existing entries unusable rather than merely stale -- a
         # different `$cpuTarget`, which is part of the cache slug Julia computes; a different
         # set of cached paths below. The other fields cover the cases that rotate on their own.
-        key: julia-toolkit;v=1;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ steps.toolkit.outputs.version }};manifest=${{ steps.toolkit.outputs.hash }}
+        key: julia-toolkit;v=2;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ steps.toolkit.outputs.version }};manifest=${{ steps.toolkit.outputs.hash }}
         # `scratchspaces` and `logs` are left out on purpose. Scratch contents belong to the
         # workspace under test, and this entry is written once and read forever after, so
         # anything workspace-shaped in it would be frozen for every later user of the key.
@@ -237,22 +305,21 @@ runs:
         if ($env:TEST_TIMEOUT) { $jargs += @('--timeout', $env:TEST_TIMEOUT) }
         if ($env:TEST_ACTIVATION_TIMEOUT) { $jargs += @('--activation-timeout', $env:TEST_ACTIVATION_TIMEOUT) }
         if ($env:TEST_RUN_STALL) { $jargs += @('--run-stall', $env:TEST_RUN_STALL) }
-        # A test process is launched with a copy of this process's environment, so both of the
-        # variables set for the toolkit have to be taken back off it again. `JULIA_DEPOT_PATH`
-        # would otherwise have it precompile the package under test into an entry whose whole
-        # point is to be matrix-independent; `JULIA_CPU_TARGET` would otherwise change the
-        # slug the test environment precompiles into -- discarding the per-leg cache the job
-        # just restored -- and compile the package under test for a baseline CPU, which is not
-        # this action's call to make about somebody else's tests.
+        # A test process is launched with a copy of this process's environment, so neither of
+        # the variables set for the toolkit can be left on it. `JULIA_DEPOT_PATH` would
+        # otherwise have it precompile the package under test into an entry whose whole point
+        # is to be matrix-independent, and the toolkit's `JULIA_CPU_TARGET` is chosen for the
+        # runner, which on a 32-bit channel is not even the right architecture.
         #
-        # Each goes back to what the job asked for, or is removed outright when the job asked
-        # for nothing: a null in `--env-json` deletes the variable rather than setting it
-        # empty, which is what restores Julia's own defaults. `ConvertTo-Json` is also what
-        # escapes a Windows path into a legal JSON string. This is emitted before the caller's
-        # own `--env-json` so an explicit setting there still wins.
+        # Both are replaced with the values resolved for the test processes above: the depot
+        # the job asked for, and a portable CPU target for the channel's architecture. A null
+        # in `--env-json` deletes the variable rather than setting it empty, which is what
+        # restores Julia's own default when there is nothing to put back. `ConvertTo-Json` is
+        # also what escapes a Windows path into a legal JSON string. This is emitted before
+        # the caller's own `--env-json`, so an explicit setting there still wins.
         $envForTests = @{
             'JULIA_DEPOT_PATH' = if ($env:JOB_DEPOT) { $env:JOB_DEPOT } else { $null }
-            'JULIA_CPU_TARGET' = if ($env:JOB_CPU_TARGET) { $env:JOB_CPU_TARGET } else { $null }
+            'JULIA_CPU_TARGET' = if ($env:TEST_CPU_TARGET) { $env:TEST_CPU_TARGET } else { $null }
         }
         $jargs += @('--env-json', ($envForTests | ConvertTo-Json -Compress))
         if ($env:TEST_ENV) { $jargs += @('--env-json', $env:TEST_ENV) }
@@ -287,7 +354,7 @@ runs:
         JULIA_DEPOT_PATH: ${{ steps.toolkit.outputs.depot }}
         JULIA_CPU_TARGET: ${{ steps.toolkit.outputs.cpu-target }}
         JOB_DEPOT: ${{ steps.toolkit.outputs.job-depot }}
-        JOB_CPU_TARGET: ${{ steps.toolkit.outputs.job-cpu-target }}
+        TEST_CPU_TARGET: ${{ steps.toolkit.outputs.test-cpu-target }}
         TEST_PATH: ${{ inputs.test-path }}
         TEST_JULIAUP_CHANNEL: ${{ inputs.juliaup-channel }}
         TEST_ENV: ${{ inputs.env }}
