@@ -139,11 +139,60 @@ runs:
     - name: Install host Julia
       shell: bash
       run: juliaup add release
+    # The toolkit -- juliati and the dependency tree pinned by this action's manifest -- is
+    # always built by `julia +release`, whatever channel the test processes themselves run
+    # on. It is therefore the same on every leg of a test matrix, and leaving it in the
+    # default depot meant each leg precompiled and then cached its own copy of it. On a
+    # 44-leg matrix that measured 106 minutes of precompilation per run, and tens of MB of
+    # duplicated cache per leg against a 10 GB per-repository cache limit.
+    #
+    # So it gets a depot of its own, under a key that no matrix value enters. Every leg
+    # restores the same entry; on a cold key the first leg to finish writes it and the rest
+    # lose the race harmlessly -- `actions/cache` warns about a reservation conflict, it
+    # does not fail the job.
+    - name: Resolve the toolkit cache key
+      id: toolkit
+      shell: pwsh
+      run: |
+        # Precompile output belongs to one exact Julia build, so the version `release`
+        # currently resolves to has to be part of the key. Without it, a new Julia release
+        # would hand every leg a cache it cannot use but would still be charged for.
+        $version = (julia +release --version) -replace '^julia version ', ''
+        # `hashFiles()` is no use here: it only resolves paths under GITHUB_WORKSPACE, and
+        # the manifest that pins the toolkit lives in the action's own directory.
+        $manifest = Join-Path $env:GITHUB_ACTION_PATH 'Manifest.toml'
+        $hash = (Get-FileHash -Algorithm SHA256 $manifest).Hash.Substring(0, 16)
+        # Forward slashes throughout: `actions/cache` matches the paths below as globs, and
+        # a Windows backslash is an escape character to the glob parser. Julia takes either.
+        $depot = (Join-Path $env:RUNNER_TEMP 'julia-toolkit-depot') -replace '\\', '/'
+        "version=$version" >> $env:GITHUB_OUTPUT
+        "hash=$hash" >> $env:GITHUB_OUTPUT
+        "depot=$depot" >> $env:GITHUB_OUTPUT
+        # Recorded before anything overrides it: the steps below run with the toolkit depot
+        # in the environment, so this is the only place the job's own choice is still
+        # visible. The test processes are put back on it further down.
+        "job-depot=$env:JULIA_DEPOT_PATH" >> $env:GITHUB_OUTPUT
+    - name: Restore the toolkit depot
+      uses: actions/cache@v4
+      with:
+        # Deliberately no `restore-keys`. A prefix match would load a depot precompiled by
+        # a different Julia, which is the one case this key exists to rule out: a miss that
+        # rebuilds from scratch is merely slow, a near-miss is wrong.
+        key: julia-toolkit;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ steps.toolkit.outputs.version }};manifest=${{ steps.toolkit.outputs.hash }}
+        # `scratchspaces` and `logs` are left out on purpose. Scratch contents belong to the
+        # workspace under test, and this entry is written once and read forever after, so
+        # anything workspace-shaped in it would be frozen for every later user of the key.
+        path: |
+          ${{ steps.toolkit.outputs.depot }}/packages
+          ${{ steps.toolkit.outputs.depot }}/compiled
+          ${{ steps.toolkit.outputs.depot }}/artifacts
+          ${{ steps.toolkit.outputs.depot }}/registries
     - name: Install and precompile
       run: julia +release -e 'import Pkg; Pkg.instantiate()'
       shell: bash
       env:
         JULIA_PROJECT: ${{ github.action_path }}
+        JULIA_DEPOT_PATH: ${{ steps.toolkit.outputs.depot }}
     - name: Run test items
       id: run
       run: |
@@ -158,6 +207,16 @@ runs:
         if ($env:TEST_TIMEOUT) { $jargs += @('--timeout', $env:TEST_TIMEOUT) }
         if ($env:TEST_ACTIVATION_TIMEOUT) { $jargs += @('--activation-timeout', $env:TEST_ACTIVATION_TIMEOUT) }
         if ($env:TEST_RUN_STALL) { $jargs += @('--run-stall', $env:TEST_RUN_STALL) }
+        # A test process is launched with a copy of this process's environment, so without
+        # this it would inherit the toolkit depot and precompile the package under test
+        # into an entry whose whole point is to be matrix-independent. Put it back on the
+        # depot the job asked for -- or, when the job asked for nothing, on Julia's default
+        # `~/.julia`, which is what `julia-actions/cache` caches per leg. A null value in
+        # `--env-json` removes the variable rather than setting it empty; `ConvertTo-Json`
+        # is what escapes a Windows path into a legal JSON string. This goes before the
+        # caller's own `--env-json` so an explicit setting there still wins.
+        $depotForTests = @{ 'JULIA_DEPOT_PATH' = if ($env:JOB_DEPOT) { $env:JOB_DEPOT } else { $null } }
+        $jargs += @('--env-json', ($depotForTests | ConvertTo-Json -Compress))
         if ($env:TEST_ENV) { $jargs += @('--env-json', $env:TEST_ENV) }
         if ($env:TEST_FILTER) { $jargs += @('--filter', $env:TEST_FILTER) }
         if ($env:TEST_PROFILE_NAME) { $jargs += @('--profile-name', $env:TEST_PROFILE_NAME) }
@@ -185,6 +244,8 @@ runs:
         "junit-path=$env:TEST_JUNIT_PATH" >> $env:GITHUB_OUTPUT
       shell: pwsh
       env:
+        JULIA_DEPOT_PATH: ${{ steps.toolkit.outputs.depot }}
+        JOB_DEPOT: ${{ steps.toolkit.outputs.job-depot }}
         TEST_PATH: ${{ inputs.test-path }}
         TEST_JULIAUP_CHANNEL: ${{ inputs.juliaup-channel }}
         TEST_ENV: ${{ inputs.env }}
