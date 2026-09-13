@@ -79,15 +79,32 @@ The action requires [juliaup](https://github.com/JuliaLang/juliaup) on the
 PATH (e.g. via `julia-actions/install-juliaup`); it adds the `release` channel
 itself for its host tooling.
 
-The action does not cache anything itself — it instantiates its tooling into
-the default Julia depot (`~/.julia`). To cache the depot (including the
-precompilation done by the test worker processes), add a job-level cache step
-before this action:
+There are two depots in play, and the action looks after one of them.
+
+### The toolkit depot — cached by the action
+
+The action's own tooling (`juliati` and the dependency tree pinned by this
+repository's `Manifest.toml`) is always built by `julia +release`, whatever
+channel the test processes run on. It is therefore identical on every leg of a
+test matrix, so the action keeps it in a depot of its own under `RUNNER_TEMP`
+and caches it itself. The key is the runner OS and architecture, the version
+`release` currently resolves to, and a hash of that manifest — no matrix value
+enters it, so a single entry serves a whole matrix.
+
+This needs no configuration, and nothing in your workflow should point at that
+depot. Before, the toolkit went into the default depot and every leg
+precompiled and cached its own copy of the same thing.
+
+### The depot the tests use — cache it yourself
+
+The test processes use the default Julia depot (`~/.julia`), or whatever the
+job set `JULIA_DEPOT_PATH` to; the toolkit depot is not visible to them. Cache
+it with a job-level step before this action, as before:
 
 ```yaml
 - uses: julia-actions/install-juliaup@v2
 - uses: julia-actions/cache@v2
 ```
 
-Note: if the job sets `JULIA_DEPOT_PATH`, the action uses that depot
-(earlier versions overrode it with a private depot under `runner.tool_cache`).
+That entry now holds only what is genuinely particular to the package under
+test: its dependencies, and the precompilation the test processes do.
