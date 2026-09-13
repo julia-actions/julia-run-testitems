@@ -254,9 +254,21 @@ runs:
         # Forward slashes throughout: `actions/cache` matches the paths below as globs, and
         # a Windows backslash is an escape character to the glob parser. Julia takes either.
         $depot = (Join-Path $env:RUNNER_TEMP 'julia-toolkit-depot') -replace '\\', '/'
+        # What the Julia steps get as `JULIA_DEPOT_PATH`. The trailing separator matters: a
+        # trailing empty entry expands to the depots bundled with the Julia installation
+        # (`share/julia` and `local/share/julia`), which is where the stdlib package images
+        # ship. Without it `DEPOT_PATH` is this directory alone, the stdlibs are invisible,
+        # and every cold build recompiled Test, REPL, Distributed, Serialization, Mmap and
+        # InteractiveUtils into the toolkit entry -- REPL alone at two minutes -- for no
+        # gain. The bundled images are built with Julia's own multi-versioned target, so
+        # both the native host process and the portable workers accept them. The cached
+        # paths keep using the bare `depot`: the bundled depots are part of the Julia
+        # install, not of this entry.
+        $depotEnv = $depot + [IO.Path]::PathSeparator
         "version=$version" >> $env:GITHUB_OUTPUT
         "hash=$hash" >> $env:GITHUB_OUTPUT
         "depot=$depot" >> $env:GITHUB_OUTPUT
+        "depot-env=$depotEnv" >> $env:GITHUB_OUTPUT
         # Recorded before anything overrides it: the steps below run with the toolkit depot
         # in the environment, so this is the only place the job's own choice is still
         # visible. The test processes are put back on it further down.
@@ -289,7 +301,7 @@ runs:
       shell: bash
       env:
         JULIA_PROJECT: ${{ github.action_path }}
-        JULIA_DEPOT_PATH: ${{ steps.toolkit.outputs.depot }}
+        JULIA_DEPOT_PATH: ${{ steps.toolkit.outputs.depot-env }}
         JULIA_CPU_TARGET: ${{ steps.toolkit.outputs.cpu-target }}
     - name: Run test items
       id: run
@@ -351,7 +363,7 @@ runs:
       env:
         # Also set when the toolkit is only being loaded, not built: the slug is computed
         # again at load time, so leaving it out here would miss every cache it just restored.
-        JULIA_DEPOT_PATH: ${{ steps.toolkit.outputs.depot }}
+        JULIA_DEPOT_PATH: ${{ steps.toolkit.outputs.depot-env }}
         JULIA_CPU_TARGET: ${{ steps.toolkit.outputs.cpu-target }}
         JOB_DEPOT: ${{ steps.toolkit.outputs.job-depot }}
         TEST_CPU_TARGET: ${{ steps.toolkit.outputs.test-cpu-target }}
