@@ -70,7 +70,11 @@ inputs:
       between CI machines with different CPUs -- Julia's own default, `native`, does not,
       and a cache built on one CPU is refused on another (or, before Julia 1.10, executed
       anyway). Set `native` to opt out, or any target string to choose your own. A
-      job-level `JULIA_CPU_TARGET` is honoured when this is empty.
+      job-level `JULIA_CPU_TARGET` is honoured when this is empty. Whatever the depot
+      already holds, the test processes make it consistent with their target: their
+      environment activation precompiles from a child Julia on the target's base CPU, so
+      images built under another target are rebuilt once rather than handed to a worker
+      that refuses them (fatal on Julia 1.13, slow before).
     required: false
     default: ''
   check-bounds:
@@ -234,6 +238,17 @@ runs:
         # still reports X64 -- so their architecture comes from the channel when it names one.
         # An explicit `cpu-target`, or a job-level `JULIA_CPU_TARGET`, is taken at its word
         # and not probed: asking for a target Julia rejects should fail loudly.
+        #
+        # They share the job's depot with whatever ran before this action and with earlier
+        # runs' caches, which may hold images built under Julia's default `native` target.
+        # `JULIA_CPU_TARGET` never changes the process it is set in -- Julia reads it only
+        # when spawning precompilation workers -- so a test process would accept those native
+        # images, compile only the stale package, and have its worker refuse the very same
+        # files: nested recompilation up to Julia 1.12, and on 1.13, whose workers run with
+        # `--compiled-modules=strict`, a failed run. TestItemControllers 1.11.2 (pinned by
+        # this action's manifest) therefore precompiles the test environment from a child
+        # Julia on the target's base CPU whenever the target is portable, which rebuilds
+        # such images once. That is what makes setting a target here safe at all.
         $testChannel = if ($env:TEST_JULIAUP_CHANNEL) { $env:TEST_JULIAUP_CHANNEL } else { 'release' }
         $testArch = if ($testChannel -match '~(.+)$') { $Matches[1] } else { $env:RUNNER_ARCH }
         if ($env:CPU_TARGET_INPUT) {

@@ -112,20 +112,45 @@ precompiled and cached its own copy of the same thing.
 ### The depot the tests use — cache it yourself
 
 The test processes use the default Julia depot (`~/.julia`), or whatever the
-job set `JULIA_DEPOT_PATH` to; the toolkit depot is not visible to them. They get
-their own portable `JULIA_CPU_TARGET`, chosen for the architecture their
-`juliaup-channel` names rather than the runner's — on a 32-bit channel those
-differ — so the depot you cache below survives moving between runner CPUs too.
-Before Julia 1.10 that is a correctness matter and not only a speed one: package
-images arrived in 1.9, which does not check them against the host CPU and simply
-runs them. Set the `cpu-target` input to `native` to opt out, or to any target of
-your own; a job-level `JULIA_CPU_TARGET` is honoured as well. Cache the depot with
-a job-level step before this action, as before:
+job set `JULIA_DEPOT_PATH` to; the toolkit depot is not visible to them. Cache
+that depot with a job-level step before this action:
 
 ```yaml
-- uses: julia-actions/install-juliaup@v2
-- uses: julia-actions/cache@v2
+- uses: julia-actions/install-juliaup@v3
+- uses: julia-actions/cache@v3
+- uses: julia-actions/julia-run-testitems@v2
 ```
 
-That entry now holds only what is genuinely particular to the package under
-test: its dependencies, and the precompilation the test processes do.
+`julia-actions/cache` is the right tool for it: the depot changes with every
+dependency update, and that action re-saves it under a fresh key each run,
+saves it even when the tests fail, and deletes the entry it replaced. That entry
+holds only what is genuinely particular to the package under test — its
+dependencies, and the precompilation the test processes do — because the toolkit
+lives in its own depot.
+
+No `julia-actions/julia-buildpkg` step is needed. The test processes instantiate,
+build and precompile the test environment themselves, in a sandbox that mirrors
+the package; `julia-buildpkg` only resolved the checkout's own project in place
+and installed a registry Pkg installs anyway. One thing it did export for the job
+is `JULIA_PKG_SERVER_REGISTRY_PREFERENCE=eager`, which makes a version registered
+minutes ago resolvable without waiting for the package server's conservative
+snapshot; set it as a job-level `env:` if you relied on that.
+
+The test processes get a portable `JULIA_CPU_TARGET`, chosen for the
+architecture their `juliaup-channel` names rather than the runner's — on a
+32-bit channel those differ — so the cached depot survives moving between runner
+CPUs too. Before Julia 1.10 that is a correctness matter and not only a speed
+one: package images arrived in 1.9, which does not check them against the host
+CPU and simply runs them. Set the `cpu-target` input to `native` to opt out, or
+to any target of your own; a job-level `JULIA_CPU_TARGET` is honoured as well.
+
+A portable target is only safe because the test processes clean up after
+whatever the depot already holds. `JULIA_CPU_TARGET` never changes the process it
+is set in — Julia reads it only when spawning precompilation workers — so a test
+process would otherwise accept native images left by an earlier run or by some
+other step, compile only the stale package, and watch its worker refuse those
+same images (on Julia 1.13, whose workers run with `--compiled-modules=strict`,
+that fails the run). So under a portable target, environment activation
+precompiles from a child Julia started on the target's base CPU, which rebuilds
+such images once; nothing the depot held before, and nothing another step puts
+there, can break the run.
