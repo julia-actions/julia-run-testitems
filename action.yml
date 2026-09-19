@@ -101,6 +101,13 @@ inputs:
       and similar. Implies coverage.
     required: false
     default: ''
+  coverage-cobertura-path:
+    description: >-
+      Path to write the merged coverage of the run in Cobertura XML format, which GitHub
+      Code Quality takes and LCOV consumers do not. Implies coverage. Both paths can be
+      set at once; the run is instrumented once and written out twice.
+    required: false
+    default: ''
   output-mode:
     description: >-
       Which captured test-item output to echo into the job log: 'issues' (default, only
@@ -147,6 +154,9 @@ outputs:
   junit-path:
     description: 'Path of the JUnit XML that was written (empty if none was written)'
     value: ${{ steps.run.outputs.junit-path }}
+  coverage-cobertura-path:
+    description: 'Path of the Cobertura XML that was written (empty if none was written)'
+    value: ${{ steps.run.outputs.coverage-cobertura-path }}
 runs:
   using: "composite"
   steps:
@@ -355,6 +365,7 @@ runs:
         if ($resultsFile) { $jargs += @('--results-json', $resultsFile) }
         if ($env:TEST_COVERAGE -eq 'true') { $jargs += '--coverage' }
         if ($env:TEST_COVERAGE_LCOV) { $jargs += @('--coverage-lcov', $env:TEST_COVERAGE_LCOV) }
+        if ($env:TEST_COVERAGE_COBERTURA) { $jargs += @('--coverage-cobertura', $env:TEST_COVERAGE_COBERTURA) }
         if ($env:TEST_JUNIT_PATH) { $jargs += @('--junit-xml', $env:TEST_JUNIT_PATH) }
         if ($env:TEST_OUTPUT_MODE) { $jargs += @('--output', $env:TEST_OUTPUT_MODE) }
         if ($env:TEST_MAX_WORKERS) { $jargs += @('--max-workers', $env:TEST_MAX_WORKERS) }
@@ -374,6 +385,7 @@ runs:
         "exit-code=$LASTEXITCODE" >> $env:GITHUB_OUTPUT
         "results-path=$resultsFile" >> $env:GITHUB_OUTPUT
         "junit-path=$env:TEST_JUNIT_PATH" >> $env:GITHUB_OUTPUT
+        "coverage-cobertura-path=$env:TEST_COVERAGE_COBERTURA" >> $env:GITHUB_OUTPUT
       shell: pwsh
       env:
         # Also set when the toolkit is only being loaded, not built: the slug is computed
@@ -392,6 +404,7 @@ runs:
         TEST_PROFILE_NAME: ${{ inputs.profile-name }}
         TEST_COVERAGE: ${{ inputs.coverage }}
         TEST_COVERAGE_LCOV: ${{ inputs.coverage-lcov-path }}
+        TEST_COVERAGE_COBERTURA: ${{ inputs.coverage-cobertura-path }}
         TEST_JUNIT_PATH: ${{ inputs.junit-path }}
         TEST_OUTPUT_MODE: ${{ inputs.output-mode }}
         TEST_MAX_WORKERS: ${{ inputs.max-workers }}
