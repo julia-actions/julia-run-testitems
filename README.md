@@ -38,7 +38,7 @@ All inputs are optional.
 | `testitem-timeout` | *(none)* | Per-test-item timeout in seconds. Unset by default, since a test item can legitimately take arbitrarily long and a timeout that fires errors the item and kills its test process. Worth setting when you want a hang diagnosed: on a timeout the worker dumps task backtraces and a CPU profile into the item's output, which you get no other way. Without one, a hung item runs until the job hits its own `timeout-minutes` (GitHub default: 360) and nothing identifies which item hung. |
 | `coverage` | `false` | Run the test processes in coverage mode. |
 | `max-workers` | *(juliati default)* | Maximum number of parallel test processes. |
-| `cpu-target` | *(portable target for the platform)* | `JULIA_CPU_TARGET` for the test processes. Empty picks the multi-versioned target the Julia devdocs give for a portable system image (`pentium4` on 32-bit x86, `generic` on aarch64); `native` opts out; any target string is used as given; a job-level `JULIA_CPU_TARGET` is honoured when this is empty. See [The depot the tests use](#the-depot-the-tests-use--cache-it-yourself). |
+| `cpu-target` | *(portable target for the platform)* | `JULIA_CPU_TARGET` for the test processes. Empty picks the multi-versioned target the Julia devdocs give for a portable system image (`pentium4` on 32-bit x86, `generic,+aes` on aarch64); `native` opts out; any target string is used as given; a job-level `JULIA_CPU_TARGET` is honoured when this is empty. See [The depot the tests use](#the-depot-the-tests-use--cache-it-yourself). |
 | `check-bounds` | `auto` | `--check-bounds` mode for the test processes: `auto` respects `@inbounds` annotations and reuses the precompile caches the depot already holds; `yes` forces bounds checks everywhere, matching `Pkg.test` semantics, at the cost of recompiling the whole dependency tree into a separate cache slot on every run. |
 | `annotations` | `true` | Emit GitHub error annotations for failed test items. |
 | `junit-path` | *(unset)* | Path to write the results as JUnit XML. Most CI test reporters consume this format; `results-path` is richer but far less portable. |
@@ -102,9 +102,11 @@ between two runners with different CPUs looks valid, is rejected on load, and
 recompiles. GitHub's runner fleet is mixed enough for that to happen regularly
 (see [julia-actions/cache#114](https://github.com/julia-actions/cache/issues/114)).
 The target is the multi-versioned one the Julia devdocs give for a portable system
-image on x86_64, `pentium4` on 32-bit x86 and `generic` on aarch64; a platform
+image on x86_64, `pentium4` on 32-bit x86 and `generic,+aes` on aarch64; a platform
 whose Julia does not accept it gets a warning and Julia's default instead, keeping
-the behaviour it had before.
+the behaviour it had before. The aarch64 `+aes` is the crypto extension bare
+`generic` leaves out: without it a package that emits `PMULL` through `llvmcall`
+cannot be precompiled at all, and every aarch64 CPU that can host a runner has it.
 
 This needs no configuration, and nothing in your workflow should point at that
 depot. Before, the toolkit went into the default depot and every leg

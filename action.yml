@@ -203,11 +203,23 @@ runs:
         # image, and the ones julia-actions/cache#114 recommends for exactly this problem.
         # `sandybridge` as the floor keeps the x86_64 one valid on the oldest Julia any
         # matrix here runs.
+        #
+        # The aarch64 one carries `+aes` on top of the devdocs' bare `generic`, which is
+        # armv8-a without the crypto extensions. A package that emits `PMULL` through
+        # `llvmcall` -- CSV 1.0 does, for its quote mask -- then fails instruction selection
+        # outright ("LLVM ERROR: Cannot select: AArch64ISD::PMULL"), which aborts the
+        # precompilation worker and fails every `using` in the run. `aes` is the Julia
+        # feature that covers `PMULL` (HWCAP_PMULL, `src/features_aarch64.h`), it is
+        # spelled the same on every Julia this action supports, and every aarch64 CPU that
+        # can host a runner for it -- all Apple silicon, all Neoverse -- has it. A Julia
+        # that did not know the name would warn and ignore it, leaving today's behaviour.
+        # The one thing this gives up is a host without the crypto extensions, which would
+        # take an illegal instruction rather than a cache miss; no such runner exists here.
         function Resolve-PortableCpuTarget([string] $arch) {
             switch -Regex ($arch) {
                 '^(X64|x64|x86_64)$' { return 'generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)' }
                 '^(X86|x86|i686)$'   { return 'pentium4' }
-                '^(ARM64|aarch64)$'  { return 'generic' }
+                '^(ARM64|aarch64)$'  { return 'generic,+aes' }
                 default              { return '' }
             }
         }
@@ -217,9 +229,11 @@ runs:
         # ("More than one command line CPU targets specified without a `--output-` flag"),
         # so each variant's CPU name is checked on its own; the feature flags and the
         # `clone_all`/`base(1)` directives around them are multi-versioning syntax rather
-        # than anything platform-dependent. The environment variable cannot be probed
-        # directly -- Julia accepts any value for it at startup and only fails later, inside
-        # the precompilation worker that actually reads it.
+        # than anything platform-dependent. Probing them would tell nothing either way: a
+        # feature Julia does not recognise is a warning on stderr and is ignored, not an
+        # error. The environment variable cannot be probed directly -- Julia accepts any
+        # value for it at startup and only fails later, inside the precompilation worker
+        # that actually reads it.
         function Test-CpuTarget([string] $channel, [string] $target) {
             if (-not $target) { return $false }
             foreach ($variant in ($target -split ';')) {
@@ -312,7 +326,7 @@ runs:
         # for any change that makes existing entries unusable rather than merely stale -- a
         # different `$cpuTarget`, which is part of the cache slug Julia computes; a different
         # set of cached paths below. The other fields cover the cases that rotate on their own.
-        key: julia-toolkit;v=2;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ steps.toolkit.outputs.version }};manifest=${{ steps.toolkit.outputs.hash }}
+        key: julia-toolkit;v=3;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ steps.toolkit.outputs.version }};manifest=${{ steps.toolkit.outputs.hash }}
         # `scratchspaces` and `logs` are left out on purpose. Scratch contents belong to the
         # workspace under test, and this entry is written once and read forever after, so
         # anything workspace-shaped in it would be frozen for every later user of the key.
