@@ -60,7 +60,9 @@ inputs:
     required: false
     default: 'false'
   max-workers:
-    description: 'Maximum number of parallel test processes (default: the juliati default)'
+    description: >-
+      Maximum number of parallel test processes. Default: the number of CPU threads, at
+      most 8 and at most one per 3 GiB of system memory.
     required: false
     default: ''
   cpu-target:
@@ -121,14 +123,16 @@ inputs:
     default: ''
   gc-between-testitems:
     description: >-
-      Run a full GC between test items: 'true', 'false', or empty for the juliati default
-      (on when more than one test process is used).
+      'true', 'false', or empty for the default (off). Runs a full garbage collection after
+      every test item. This slows runs down, and on machines short of memory it slows them
+      down a lot. It can help when test items hold memory outside the Julia heap that only
+      finalizers release.
     required: false
     default: ''
   memory-threshold:
     description: >-
-      Recycle a test process once system memory use exceeds this fraction (0-1). Off by
-      default. Experimental.
+      Recycle a test process once its own resident memory exceeds this fraction (0-1) of
+      total system memory. Off by default. Experimental.
     required: false
     default: ''
   test-log-level:
